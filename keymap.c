@@ -111,7 +111,7 @@ const Keymap EN_US = {
 };
 
 #define BREAK   0x01
-#define MOD     0x02
+#define EXTEND  0x02
 #define SHIFT_L 0x04
 #define SHIFT_R 0x08
 #define CTRL    0x10
@@ -125,7 +125,7 @@ static int get8859Code(uint8_t code) {
         if (code == 0xF0) {
             modifiers |= BREAK;
         } else if (code == 0xE0) {
-            modifiers |= MOD;
+            modifiers |= EXTEND;
         } else {
             if (modifiers & BREAK) {
                 // Key release
@@ -140,7 +140,7 @@ static int get8859Code(uint8_t code) {
                 } else if (code == WIN) {
                     modifiers &= ~WIN;
                 }
-                modifiers &= ~(BREAK | MOD);
+                modifiers &= ~(BREAK | EXTEND);
                 continue;
             }
             // Key press
@@ -161,8 +161,23 @@ static int get8859Code(uint8_t code) {
                 continue;
             }
             c = 0;
-            if (modifiers & MOD) {
+            if (modifiers & EXTEND) {
+                // Extended scancodes (0xE0 prefix)
+                if (code == LCTRL) {
+                    modifiers |= CTRL;
+                    modifiers &= ~EXTEND;
+                    continue;
+                } else if (code == LALT) {
+                    modifiers |= ALT;
+                    modifiers &= ~EXTEND;
+                    continue;
+                } else if (code == WIN) {
+                    modifiers |= WIN;
+                    modifiers &= ~EXTEND;
+                    continue;
+                }
                 switch (code) {
+                    // Navigation keys
                     case 0x70: c = INS;  break;
                     case 0x6C: c = HOME; break;
                     case 0x7D: c = PGUP; break;
@@ -173,6 +188,11 @@ static int get8859Code(uint8_t code) {
                     case 0x72: c = DOWN; break;
                     case 0x6B: c = LEFT; break;
                     case 0x74: c = RIGHT;break;
+                    // Numpad keys
+                    case 0x5A: c = '\n'; break;  // Numpad Enter
+                    case 0x4A: c = '/';  break;  // Numpad /
+                    // Menu/Apps key
+                    case 0x2F: c = MENU; break;
                     default: break;
                 }
             } else if ((modifiers & (SHIFT_L | SHIFT_R))) {
@@ -180,7 +200,7 @@ static int get8859Code(uint8_t code) {
             } else {
                 c = EN_US.normal[code];
             }
-            modifiers &= ~(BREAK | MOD);
+            modifiers &= ~(BREAK | EXTEND);
             if (c) return c;
             return -1;
         }
