@@ -7,11 +7,12 @@
  */
 
 #include <builtins.h>
-#pragma config FOSC = XT
-#pragma config WDTE = OFF
-#pragma config PWRTE = OFF
-#pragma config BOREN = ON
-#pragma config CP = OFF
+#pragma config FOSC = HS        // Oscillator Selection bits
+#pragma config WDTE = ON        // Watchdog Timer Enable bit
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit
+#pragma config BOREN = ON       // Brown-out Reset Enable bit
+#pragma config BODENV = 40      // Brown-out Reset Voltage bit
+#pragma config CP = OFF         // Code Protect
 
 #define _XTAL_FREQ 20000000 // 20 MHz
 
