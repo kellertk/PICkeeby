@@ -45,6 +45,18 @@ update the _XTAL_FREQ definition in main.c if you change the crystal frequency.
 
 This project uses CMake with Microchip XC8 compiler.
 
+1. Configure
+
+    ```bash
+    make configure
+    ```
+2. Build
+
+    ```bash
+    make
+    ```
+3. The output HEX file will be in `build/` directory.
+
 ## Theory of Operation
 
 ### PS/2 Protocol Reception
