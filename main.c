@@ -29,6 +29,8 @@
 #define SR_CLK_DIR    TRISBbits.TRISB6
 #define SR_DATA_DIR   TRISBbits.TRISB5
 #define INTB_DIR      TRISBbits.TRISB7
+#define DEBUG_LED     PORTAbits.RA2
+#define DEBUG_LED_DIR TRISAbits.TRISA2
 
 #include <xc.h>
 #include "keymap.h"
@@ -40,7 +42,7 @@ volatile uint8_t keyBuffer[BUFFER_SIZE];
 volatile uint8_t bufferIdx = 0; // bits 0-3: tail, bits 4-7: head
 
 // Store received data in circular buffer (17 bytes total overhead)
-void receiveScancode(uint8_t data) {
+void decodeScancode(uint8_t data) {
     int c = getkbdchar(data);
     if (c == -1) return;
 
@@ -99,7 +101,8 @@ void __interrupt() ps2ISR(void) {
         }
     } else {
         // count == 10
-        if (bit) receiveScancode(data);
+        DEBUG_LED = 1;
+        if (bit) decodeScancode(data);
         state = 0;
         INTCONbits.INTF = 0;
         return;
@@ -111,12 +114,14 @@ void __interrupt() ps2ISR(void) {
 
 void setup(void) {
     TRISA = 0xFF;
-    TRISB = 0xFF;
-    KBD_CLOCK_DIR = 1; // input
-    KBD_DATA_DIR = 1;  // input
+    TRISB = 0xFF;      // all ports are input
     SR_CLK_DIR = 0;    // output
     SR_DATA_DIR = 0;   // output
-    INTB_DIR = 1;      // input
+    DEBUG_LED_DIR = 0; // output
+
+    SR_CLK = 0;
+    SR_DATA = 0;
+    DEBUG_LED = 0;
 
     INTCONbits.INTF = 0;       // clear INT flag
     OPTION_REGbits.INTEDG = 0; // interrupt on falling edge
@@ -148,6 +153,8 @@ int main() {
                 shiftOutByte(data);
             }
         } else {
+            __delay_us(10); // So you can see the LED blink
+            DEBUG_LED = 0;
             __asm("sleep");
         }
     }

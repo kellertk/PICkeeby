@@ -23,7 +23,7 @@ Interface Controller" after all.
 ```
             PIC16F716
              ________
-          - |RA2  RA1| -
+DEBUG_LED - |RA2  RA1| -
           - |RA3  RA0| -
           - |RA4  OSC| - 20MHz Crystal
           - |Vpp  OSC| - 20MHz Crystal
@@ -36,6 +36,7 @@ KBD_CLOCK - |RB0  RB7| - INTB
 ```
 
 This device controls the shift register output clock, which is about 100 khz.
+The debug LED on RA2 blinks when a key is buffered.
 
 You can easily use a slower crystal or even run this statically. The clock
 frequency is used to calculate the shift register output timing though, so
