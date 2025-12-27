@@ -42,5 +42,6 @@ extern const Keymap EN_US;
 int getkbdchar(uint8_t code);
 int getkbdcharn(uint8_t code);
 int hasUTF8Buffered(void);
+void resetKeymap(void);
 
 #endif

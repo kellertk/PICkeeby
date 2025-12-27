@@ -16,7 +16,7 @@ set(COMMON_FLAGS
     -mdfp=${DFP_PATH}/xc8
     -fno-short-double
     -fno-short-float
-    -O0
+    -O2
     -maddrqual=ignore
     -mwarn=-3
     -msummary=-psect,-class,+mem,-hex,+file

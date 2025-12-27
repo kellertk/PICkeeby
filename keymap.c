@@ -116,99 +116,117 @@ const Keymap EN_US = {
 #define SHIFT_R 0x08
 #define CTRL    0x10
 #define ALT     0x20
+
+// Static state that persists across calls
+static uint8_t modifiers = 0;
+
 static int get8859Code(uint8_t code) {
-    static uint8_t modifiers = 0;
     int c;
 
-    while (1) {
-        if (!code) return 0;
-        if (code == 0xF0) {
-            modifiers |= BREAK;
-        } else if (code == 0xE0) {
-            modifiers |= EXTEND;
-        } else {
-            if (modifiers & BREAK) {
-                // Key release
-                if (code == LSHIFT) {
-                    modifiers &= ~SHIFT_L;
-                } else if (code == RSHIFT) {
-                    modifiers &= ~SHIFT_R;
-                } else if (code == LCTRL) {
-                    modifiers &= ~CTRL;
-                } else if (code == LALT) {
-                    modifiers &= ~ALT;
-                } else if (code == WIN) {
-                    modifiers &= ~WIN;
-                }
-                modifiers &= ~(BREAK | EXTEND);
-                continue;
-            }
-            // Key press
+    // Process one scancode per call - no loop
+    if (!code) return 0;
+
+    if (code == 0xF0) {
+        modifiers |= BREAK;
+        return -1;  // Wait for next scancode
+    } else if (code == 0xE0) {
+        modifiers |= EXTEND;
+        return -1;  // Wait for next scancode
+    } else {
+        if (modifiers & BREAK) {
+            // Key release
             if (code == LSHIFT) {
-                modifiers |= SHIFT_L;
-                continue;
+                modifiers &= ~SHIFT_L;
             } else if (code == RSHIFT) {
-                modifiers |= SHIFT_R;
-                continue;
+                modifiers &= ~SHIFT_R;
             } else if (code == LCTRL) {
-                modifiers |= CTRL;
-                continue;
+                modifiers &= ~CTRL;
             } else if (code == LALT) {
-                modifiers |= ALT;
-                continue;
+                modifiers &= ~ALT;
             } else if (code == WIN) {
-                modifiers |= WIN;
-                continue;
-            }
-            c = 0;
-            if (modifiers & EXTEND) {
-                // Extended scancodes (0xE0 prefix)
-                if (code == LCTRL) {
-                    modifiers |= CTRL;
-                    modifiers &= ~EXTEND;
-                    continue;
-                } else if (code == LALT) {
-                    modifiers |= ALT;
-                    modifiers &= ~EXTEND;
-                    continue;
-                } else if (code == WIN) {
-                    modifiers |= WIN;
-                    modifiers &= ~EXTEND;
-                    continue;
-                }
-                switch (code) {
-                    // Navigation keys
-                    case 0x70: c = INS;  break;
-                    case 0x6C: c = HOME; break;
-                    case 0x7D: c = PGUP; break;
-                    case 0x71: c = DEL;  break;
-                    case 0x69: c = END;  break;
-                    case 0x7A: c = PGDN; break;
-                    case 0x75: c = UP;   break;
-                    case 0x72: c = DOWN; break;
-                    case 0x6B: c = LEFT; break;
-                    case 0x74: c = RIGHT;break;
-                    // Numpad keys
-                    case 0x5A: c = '\n'; break;  // Numpad Enter
-                    case 0x4A: c = '/';  break;  // Numpad /
-                    // Menu/Apps key
-                    case 0x2F: c = MENU; break;
-                    default: break;
-                }
-            } else if ((modifiers & (SHIFT_L | SHIFT_R))) {
-                c = EN_US.shifted[code];
-            } else {
-                c = EN_US.normal[code];
+                modifiers &= ~WIN;
             }
             modifiers &= ~(BREAK | EXTEND);
-            if (c) return c;
+            return -1;  // Key release, no character to return
+        }
+
+        // Key press
+        if (code == LSHIFT) {
+            modifiers |= SHIFT_L;
+            modifiers &= ~(BREAK | EXTEND);
+            return -1;
+        } else if (code == RSHIFT) {
+            modifiers |= SHIFT_R;
+            modifiers &= ~(BREAK | EXTEND);
+            return -1;
+        } else if (code == LCTRL) {
+            modifiers |= CTRL;
+            modifiers &= ~(BREAK | EXTEND);
+            return -1;
+        } else if (code == LALT) {
+            modifiers |= ALT;
+            modifiers &= ~(BREAK | EXTEND);
+            return -1;
+        } else if (code == WIN) {
+            modifiers |= WIN;
+            modifiers &= ~(BREAK | EXTEND);
             return -1;
         }
+
+        c = 0;
+        if (modifiers & EXTEND) {
+            // Extended scancodes (0xE0 prefix)
+            if (code == LCTRL) {
+                modifiers |= CTRL;
+                modifiers &= ~EXTEND;
+                return -1;
+            } else if (code == LALT) {
+                modifiers |= ALT;
+                modifiers &= ~EXTEND;
+                return -1;
+            } else if (code == WIN) {
+                modifiers |= WIN;
+                modifiers &= ~EXTEND;
+                return -1;
+            }
+            switch (code) {
+                // Navigation keys
+                case 0x70: c = INS;  break;
+                case 0x6C: c = HOME; break;
+                case 0x7D: c = PGUP; break;
+                case 0x71: c = DEL;  break;
+                case 0x69: c = END;  break;
+                case 0x7A: c = PGDN; break;
+                case 0x75: c = UP;   break;
+                case 0x72: c = DOWN; break;
+                case 0x6B: c = LEFT; break;
+                case 0x74: c = RIGHT;break;
+                // Numpad keys
+                case 0x5A: c = '\n'; break;  // Numpad Enter
+                case 0x4A: c = '/';  break;  // Numpad /
+                // Menu/Apps key
+                case 0x2F: c = MENU; break;
+                default: break;
+            }
+        } else if ((modifiers & (SHIFT_L | SHIFT_R))) {
+            c = EN_US.shifted[code];
+        } else {
+            c = EN_US.normal[code];
+        }
+        modifiers &= ~(BREAK | EXTEND);
+        if (c) return c;
+        return -1;
     }
 }
 
 
 static uint8_t UTF8buffer = 0;
+
+void resetKeymap(void) {
+    modifiers = 0;
+    UTF8buffer = 0;
+}
+
 int getkbdchar(uint8_t code) {
     int result;
     result = UTF8buffer;

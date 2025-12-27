@@ -35,12 +35,20 @@ KBD_CLOCK - |RB0  RB7| - INTB
              --------
 ```
 
-This device controls the shift register output clock, which is about 100 khz.
+This device controls the shift register output clock, which means whatever it's
+shifting into must be able to handle the speed. I intentionally use a relatively
+slow speed (about 28.8 ms per byte) to handle slower systems. Some devices like
+the W65C22 VIA have clock hold time requirements related to their PHI2 clock and
+shifting in data: a VIA would need to run at about 300 Hz or faster to sample
+the shifted in data fast enough. This only matters if you're using a device that
+samples the SR_CLOCK line asynchronously and choosing to run the external clock
+slowly.
+
 The debug LED on RA2 blinks when a key is buffered.
 
-You can easily use a slower crystal or even run this statically. The clock
-frequency is used to calculate the shift register output timing though, so
-update the _XTAL_FREQ definition in main.c if you change the crystal frequency.
+The clock frequency is used to calculate the shift register output timing and
+PS/2 timeouts. You will need to change the `_XTAL_FREQ` definition and the
+Timer0 prescaler values in `main.c` if you use a different crystal frequency.
 
 ## Building
 
@@ -72,8 +80,13 @@ library (and therefore is under the same LGPLv2.1 license).
 
 ### Buffering & Output
 The PIC controls the shift register output clock, which is paused if new data
-arrives from the keyboard during a shift out operation. Pulling INTB low during
-the shift out operation is ignored until the shift out is complete.
+arrives from the keyboard during a shift out operation.
+
+INTB is used to enable output: the shift register output is inhibited when INTB
+is active (low). This will allow the host assert an interrupt when its buffer is
+full, handle emptying the buffer to memory, and then resume by deasserting INTB.
+Pulling INTB low during the shift out operation is ignored until the shift out
+is complete.
 
 There is a 16-byte circular buffer for keystrokes. If the buffer is full, new
 keystrokes are discarded.
