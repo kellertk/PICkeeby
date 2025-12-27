@@ -29,51 +29,15 @@
 #include "keymap.h"
 #include <stdint.h>
 
-#define ESC     0x27
-#define F1      0x3B
-#define F2      0x3C
-#define F3      0x3D
-#define F4      0x3E
-#define F5      0x3F
-#define F6      0x40
-#define F7      0x41
-#define F8      0x42
-#define F9      0x43
-#define F10     0x44
-#define F11     0x57
-#define F12     0x58
-#define PRINT   0x46
-#define SCROL   0x47
-#define PAUSE   0x48
-#define BKSP    0x0E
-#define TAB     0x0F
-#define CAPS    0x3A
-#define ENTER   0x1C
-#define LCTRL   0x1D
-#define LSHIFT  0x2A
-#define RSHIFT  0x36
-#define LALT    0x38
-#define SPACE   0x39
-#define NUM     0x45
-#define WIN     0x5B
-#define MENU    0x5D
-#define INS     0x52
-#define DEL     0x53
-#define HOME    0x47
-#define END     0x4F
-#define PGUP    0x49
-#define PGDN    0x51
-#define UP      0x48
-#define DOWN    0x50
-#define LEFT    0x4B
-#define RIGHT   0x4D
-
+// PS/2 Scan Code Set 2 - Input scancodes for modifier key detection
+#define PS2_LSHIFT  0x12
+#define PS2_RSHIFT  0x59
 
 const Keymap EN_US = {
     {
         0,  F9, 0, F5, F3, F1, F2, F12,
         0, F10, F8, F6, F4, TAB, '`', 0,
-        0, LALT, LSHIFT, 0, LCTRL, 'q', '1', 0,
+        0, 0, 0, 0, 0, 'q', '1', 0,
         0, 0, 'z', 's', 'a', 'w', '2', 0,
         0, 'c', 'x', 'd', 'e', '4', '3', 0,
         0, ' ', 'v', 'f', 't', 'r', '5', 0,
@@ -82,7 +46,7 @@ const Keymap EN_US = {
         0, ',', '.', 'k', 'i', '0', '9', 0,
         0, '.', '/', 'l', ';', 'p', '-', 0,
         0, 0, '\'', 0, '[', '=', 0, 0,
-        CAPS, RSHIFT, ENTER, ']', 0, '\\', 0, 0,
+        CAPS, 0, ENTER, ']', 0, '\\', 0, 0,
         0, 0, 0, 0, 0, 0, BKSP, 0,
         0, '1', 0, '4', '7', 0, 0, 0,
         0, '.', '2', '5', '6', '8', ESC, NUM,
@@ -92,7 +56,7 @@ const Keymap EN_US = {
     {
         0, F9, 0, F5, F3, F1, F2, F12,
         0, F10, F8, F6, F4, TAB, '~', 0,
-        0, LALT, LSHIFT, 0, LCTRL, 'Q', '!', 0,
+        0, 0, 0, 0, 0, 'Q', '!', 0,
         0, 0, 'Z', 'S', 'A', 'W', '@', 0,
         0, 'C', 'X', 'D', 'E', '$', '#', 0,
         0, ' ', 'V', 'F', 'T', 'R', '%', 0,
@@ -101,7 +65,7 @@ const Keymap EN_US = {
         0, '<', '>', 'K', 'I', ')', '(', 0,
         0, '?', '/', 'L', ':', 'P', '_', 0,
         0, 0, '"', 0, '{', '+', 0, 0,
-        CAPS, RSHIFT, ENTER, '}', 0, '|', 0, 0,
+        CAPS, 0, ENTER, '}', 0, '|', 0, 0,
         0, 0, 0, 0, 0, 0, BKSP, 0,
         0, END, 0, '4', HOME, 0, 0, 0,
         INS, DEL, '2', '5', '6', '8', ESC, NUM,
@@ -110,87 +74,59 @@ const Keymap EN_US = {
     }
 };
 
-#define BREAK   0x01
-#define EXTEND  0x02
-#define SHIFT_L 0x04
-#define SHIFT_R 0x08
-#define CTRL    0x10
-#define ALT     0x20
+// Modifier bit flags for modifiers variable
+#define BREAK      0b0001
+#define EXTEND     0b0010
+#define SHIFT_L_BIT 0b0100
+#define SHIFT_R_BIT 0b1000
 
 // Static state that persists across calls
 static uint8_t modifiers = 0;
 
+
 static int get8859Code(uint8_t code) {
+    if (!code) return 0;
     int c;
 
-    // Process one scancode per call - no loop
-    if (!code) return 0;
-
     if (code == 0xF0) {
+        // Key release, wait for next scancode
         modifiers |= BREAK;
-        return -1;  // Wait for next scancode
+        return -1;
     } else if (code == 0xE0) {
+        // Extended scancode prefix, wait for next scancode
         modifiers |= EXTEND;
-        return -1;  // Wait for next scancode
+        return -1;
     } else {
-        if (modifiers & BREAK) {
-            // Key release
-            if (code == LSHIFT) {
-                modifiers &= ~SHIFT_L;
-            } else if (code == RSHIFT) {
-                modifiers &= ~SHIFT_R;
-            } else if (code == LCTRL) {
-                modifiers &= ~CTRL;
-            } else if (code == LALT) {
-                modifiers &= ~ALT;
-            } else if (code == WIN) {
-                modifiers &= ~WIN;
+        // Save break and extend flags before clearing them
+        uint8_t is_release = modifiers & BREAK;
+        uint8_t is_extended = modifiers & EXTEND;
+        modifiers &= ~(BREAK | EXTEND);
+
+        // Handle shift keys: update modifier state and send to host
+        if (is_release) {
+            if (code == PS2_LSHIFT) {
+                modifiers &= ~SHIFT_L_BIT;
+                return SHIFT_L | 0x40;  // Release: bit 7=1, bit 6=1
+            } else if (code == PS2_RSHIFT) {
+                modifiers &= ~SHIFT_R_BIT;
+                return SHIFT_R | 0x40;
             }
-            modifiers &= ~(BREAK | EXTEND);
-            return -1;  // Key release, no character to return
+        } else {
+            if (code == PS2_LSHIFT) {
+                modifiers |= SHIFT_L_BIT;
+                return SHIFT_L;         // Press: bit 7=1, bit 6=0
+            } else if (code == PS2_RSHIFT) {
+                modifiers |= SHIFT_R_BIT;
+                return SHIFT_R;
+            }
         }
 
-        // Key press
-        if (code == LSHIFT) {
-            modifiers |= SHIFT_L;
-            modifiers &= ~(BREAK | EXTEND);
-            return -1;
-        } else if (code == RSHIFT) {
-            modifiers |= SHIFT_R;
-            modifiers &= ~(BREAK | EXTEND);
-            return -1;
-        } else if (code == LCTRL) {
-            modifiers |= CTRL;
-            modifiers &= ~(BREAK | EXTEND);
-            return -1;
-        } else if (code == LALT) {
-            modifiers |= ALT;
-            modifiers &= ~(BREAK | EXTEND);
-            return -1;
-        } else if (code == WIN) {
-            modifiers |= WIN;
-            modifiers &= ~(BREAK | EXTEND);
-            return -1;
-        }
-
+        // Look up character based on key type
         c = 0;
-        if (modifiers & EXTEND) {
-            // Extended scancodes (0xE0 prefix)
-            if (code == LCTRL) {
-                modifiers |= CTRL;
-                modifiers &= ~EXTEND;
-                return -1;
-            } else if (code == LALT) {
-                modifiers |= ALT;
-                modifiers &= ~EXTEND;
-                return -1;
-            } else if (code == WIN) {
-                modifiers |= WIN;
-                modifiers &= ~EXTEND;
-                return -1;
-            }
+        if (is_extended) {
+            // Extended keys (0xE0 prefix): navigation, numpad, modifiers
             switch (code) {
-                // Navigation keys
+                // Navigation cluster
                 case 0x70: c = INS;  break;
                 case 0x6C: c = HOME; break;
                 case 0x7D: c = PGUP; break;
@@ -201,31 +137,42 @@ static int get8859Code(uint8_t code) {
                 case 0x72: c = DOWN; break;
                 case 0x6B: c = LEFT; break;
                 case 0x74: c = RIGHT;break;
-                // Numpad keys
-                case 0x5A: c = '\n'; break;  // Numpad Enter
-                case 0x4A: c = '/';  break;  // Numpad /
-                // Menu/Apps key
-                case 0x2F: c = MENU; break;
+                // Extended numpad
+                case 0x5A: c = ENTER; break;
+                case 0x4A: c = '/';  break;
+                // Extended modifier keys
+                case 0x14: c = CTRL_R; break;
+                case 0x11: c = ALT_R;  break;
+                case 0x1F: c = WIN_L;  break;
+                case 0x27: c = WIN_R;  break;
+                case 0x2F: c = MENU;   break;
                 default: break;
             }
-        } else if ((modifiers & (SHIFT_L | SHIFT_R))) {
+        } else if ((modifiers & (SHIFT_L_BIT | SHIFT_R_BIT))) {
+            // Shifted normal key: use shifted table
             c = EN_US.shifted[code];
         } else {
+            // Normal key: use normal table
             c = EN_US.normal[code];
         }
-        modifiers &= ~(BREAK | EXTEND);
-        if (c) return c;
+
+        // Return character with release bit set if needed
+        if (c) {
+            if (is_release) {
+                // Only special keys (bit 7 set) send release events
+                if (c & 0x80) {
+                    return c | 0x40;  // Set bit 6 for release
+                }
+                return -1;  // Regular ASCII: ignore release
+            }
+            return c;  // Press event
+        }
         return -1;
     }
 }
 
 
 static uint8_t UTF8buffer = 0;
-
-void resetKeymap(void) {
-    modifiers = 0;
-    UTF8buffer = 0;
-}
 
 int getkbdchar(uint8_t code) {
     int result;

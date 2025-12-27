@@ -112,11 +112,10 @@ void __interrupt() isr(void) {
         }
     }
 
-    // Handle Timer0 timeout - reset PS/2 state if no clock for 3ms
+    // Handle Timer0 timeout - reset PS/2 packet state if no clock for 3ms
     if (INTCONbits.TMR0IF) {
         ps2_state = 0;
         ps2_data = 0;
-        resetKeymap();
         DEBUG_LED = 0;
         INTCONbits.TMR0IF = 0;
         TMR0 = 22;
@@ -134,7 +133,6 @@ void setup(void) {
     SR_CLK = 0;
     SR_DATA = 0;
     DEBUG_LED = 0;
-
     DEBUG_LED = 1;
     __delay_ms(10);
     DEBUG_LED = 0;
@@ -168,6 +166,7 @@ void shiftOutByte(uint8_t data) {
         SR_CLK = 0;
         __delay_us(100);                 // Recovery time
     }
+    SR_DATA = 0;  // Reset data line to low
 }
 
 int main() {

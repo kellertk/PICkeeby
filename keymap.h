@@ -32,9 +32,59 @@
 
 #pragma warning disable 520
 
+#define KEYMAP_SIZE 136
+
+// Keymap values sent to host
+// Bit 7 set for special keys
+#define ESC     0x1B // Standard ASCII control codes
+#define BKSP    0x08
+#define TAB     0x09
+#define ENTER   0x0D
+#define SPACE   0x20
+#define F1      0x80 // Special keys (0x80-0xA2)
+#define F2      0x81
+#define F3      0x82
+#define F4      0x83
+#define F5      0x84
+#define F6      0x85
+#define F7      0x86
+#define F8      0x87
+#define F9      0x88
+#define F10     0x89
+#define F11     0x8A
+#define F12     0x8B
+// Modifier and lock keys
+#define CAPS    0x8C
+#define SHIFT_L 0x8D
+#define SHIFT_R 0x8E
+#define CTRL_L  0x8F
+#define CTRL_R  0x90
+#define ALT_L   0x91
+#define ALT_R   0x92
+#define WIN_L   0x93
+#define WIN_R   0x94
+#define MENU    0x95
+
+// Navigation cluster
+#define INS     0x96
+#define DEL     0x97
+#define HOME    0x98
+#define END     0x99
+#define PGUP    0x9A
+#define PGDN    0x9B
+#define UP      0x9C
+#define DOWN    0x9D
+#define LEFT    0x9E
+#define RIGHT   0x9F
+
+// Lock keys
+#define NUM     0xA0
+#define SCROL   0xA1
+#define PAUSE   0xA2
+
 typedef struct {
-    unsigned char normal[136];
-    unsigned char shifted[136];
+    unsigned char normal[KEYMAP_SIZE];
+    unsigned char shifted[KEYMAP_SIZE];
 } Keymap;
 
 extern const Keymap EN_US;
@@ -42,6 +92,5 @@ extern const Keymap EN_US;
 int getkbdchar(uint8_t code);
 int getkbdcharn(uint8_t code);
 int hasUTF8Buffered(void);
-void resetKeymap(void);
 
 #endif
