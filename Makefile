@@ -1,4 +1,4 @@
-.PHONY: all clean configure
+.PHONY: all clean configure flash
 
 all:
 	@cmake -B build && cmake --build build
@@ -8,3 +8,6 @@ configure:
 
 clean:
 	rm -rf build out
+
+flash:
+	pkcmd-lx -w -f out/keeby.hex -p PIC16F716 -mpcs

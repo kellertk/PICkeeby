@@ -31,13 +31,15 @@ set(COMMON_FLAGS
     -mno-default-config-bits
     -std=c99
     -gdwarf-3
-    -mstack=compiled:auto:auto
+    -frors
+    -finterrupt-context-loops
 )
 
 # Source files
 set(SOURCES
     keymap.c
     main.c
+    ps2_send.c
 )
 
 # Compile definitions

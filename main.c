@@ -34,8 +34,9 @@
 
 #include <xc.h>
 #include "keymap.h"
+#include "ps2_send.h"
 
-// Circular buffer - 16 bytes
+// Keystroke circular buffer - 16 bytes
 #define BUFFER_SIZE 16
 #define BUFFER_MASK 0x0F
 volatile uint8_t keyBuffer[BUFFER_SIZE];
@@ -72,8 +73,8 @@ void __interrupt() isr(void) {
     static uint8_t ps2_data = 0;
     static uint8_t ps2_state = 0; // bits 0-3: count, bit 4: parity
 
-    // Handle PS/2 clock interrupt
-    if (INTCONbits.INTF) {
+    // Handle PS/2 clock interrupt (only process if INTE enabled)
+    if (INTCONbits.INTF && INTCONbits.INTE) {
         INTCONbits.INTF = 0;
         TMR0 = 22;                // Preload for ~3ms timeout
         INTCONbits.TMR0IF = 0;    // Clear Timer0 overflow flag
@@ -114,9 +115,24 @@ void __interrupt() isr(void) {
 
     // Handle Timer0 timeout - reset PS/2 packet state if no clock for 3ms
     if (INTCONbits.TMR0IF) {
+        static uint16_t echo_counter = 0;
+
         ps2_state = 0;
         ps2_data = 0;
         DEBUG_LED = 0;
+
+        // If in transmission mode, signal timeout
+        if (!INTCONbits.INTE) {
+            tx_timeout = 1;
+        }
+
+        // Timer0 fires every ~3ms, count to 3333 for ~10 seconds
+        echo_counter++;
+        if (echo_counter >= 3333) {
+            echo_counter = 0;
+            echo_timeout = 1;
+        }
+
         INTCONbits.TMR0IF = 0;
         TMR0 = 22;
     }
@@ -173,7 +189,10 @@ int main() {
     setup();
 
     while (1) {
-        // Process buffer if data available
+        // Process command queue
+        ps2_processCommands();
+
+        // Process keystroke buffer if data available
         if (bufferHead != bufferTail) {
             // Check if MCU is ready to receive (INTB high)
             if (INTB) {
