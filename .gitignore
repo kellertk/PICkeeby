@@ -1,0 +1,16 @@
+build/
+.vscode/
+
+# Generated configuration
+config.mk
+
+# KiCad auto-generated files
+hardware/kicad/fp-info-cache
+hardware/kicad/*.kicad_prl
+hardware/kicad/*-backups/
+hardware/kicad/*.dsn
+hardware/kicad/*.ses
+hardware/kicad/*.rules
+hardware/kicad/*.net
+
+MPLABXLog.xml

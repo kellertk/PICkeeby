@@ -1,0 +1,198 @@
+#!/bin/bash
+# PICkeeby Configure Script
+# Detects build tools and generates config.mk
+
+CONFIG_FILE="config.mk"
+ERRORS=0
+
+# Function to find ipecmd.jar
+find_ipe() {
+    # Check environment variable first
+    if [ -n "$MPLAB_IPE" ] && [ -f "$MPLAB_IPE" ]; then
+        echo "$MPLAB_IPE"
+        return 0
+    fi
+
+    # Common MPLAB X installation paths
+    local search_paths=()
+
+    # Windows paths (via Git Bash, MSYS2, Cygwin, or WSL)
+    search_paths+=(/c/Program\ Files/Microchip/MPLABX/v*/mplab_platform/mplab_ipe)
+    search_paths+=(/c/Program\ Files\ \(x86\)/Microchip/MPLABX/v*/mplab_platform/mplab_ipe)
+    search_paths+=(/mnt/c/Program\ Files/Microchip/MPLABX/v*/mplab_platform/mplab_ipe)
+
+    # Linux paths
+    search_paths+=(/opt/microchip/mplabx/v*/mplab_platform/mplab_ipe)
+    search_paths+=(/opt/microchip/mplabx/*/mplab_platform/mplab_ipe)
+
+    # macOS paths
+    search_paths+=(/Applications/microchip/mplabx/v*/mplab_platform/mplab_ipe)
+    search_paths+=(/Applications/MPLAB*/mplab_platform/mplab_ipe)
+
+    # Search using glob expansion
+    for pattern in "${search_paths[@]}"; do
+        for dir in $pattern; do
+            if [ -f "$dir/ipecmd.jar" ]; then
+                echo "$dir/ipecmd.jar"
+                return 0
+            fi
+        done
+    done
+
+    return 1
+}
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to find PIC16F1xxxx DFP
+find_dfp() {
+    local search_paths=()
+
+    # Windows paths (via Git Bash, MSYS2, Cygwin, or WSL)
+    search_paths+=(/c/Program\ Files/Microchip/MPLABX/v*/packs/Microchip/PIC16F1xxxx_DFP/*)
+    search_paths+=(/c/Program\ Files\ \(x86\)/Microchip/MPLABX/v*/packs/Microchip/PIC16F1xxxx_DFP/*)
+    search_paths+=(/mnt/c/Program\ Files/Microchip/MPLABX/v*/packs/Microchip/PIC16F1xxxx_DFP/*)
+
+    # Linux paths
+    search_paths+=(/opt/microchip/mplabx/v*/packs/Microchip/PIC16F1xxxx_DFP/*)
+    search_paths+=(/opt/microchip/mplabx/*/packs/Microchip/PIC16F1xxxx_DFP/*)
+
+    # macOS paths
+    search_paths+=(/Applications/microchip/mplabx/v*/packs/Microchip/PIC16F1xxxx_DFP/*)
+    search_paths+=(/Applications/MPLAB*/packs/Microchip/PIC16F1xxxx_DFP/*)
+
+    # Search using glob expansion, sort descending to get latest version
+    for pattern in "${search_paths[@]}"; do
+        for dir in $(ls -d $pattern 2>/dev/null | sort -rV | head -1); do
+            if [ -d "$dir/xc8" ]; then
+                echo "$dir"
+                return 0
+            fi
+        done
+    done
+
+    return 1
+}
+
+# Detect OS
+detect_os() {
+    case "$(uname -s)" in
+        Linux*)     echo "linux";;
+        Darwin*)    echo "macos";;
+        CYGWIN*)    echo "windows";;
+        MINGW*)     echo "windows";;
+        MSYS*)      echo "windows";;
+        *)          echo "unknown";;
+    esac
+}
+
+OS=$(detect_os)
+echo "Detected OS: $OS"
+echo ""
+
+# Check for make
+echo -n "Checking for make... "
+if command_exists make; then
+    MAKE_PATH=$(command -v make)
+    echo "found: $MAKE_PATH"
+else
+    echo "NOT FOUND"
+    echo "  ERROR: make is required to build this project"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# Check for galette
+echo -n "Checking for galette... "
+if command_exists galette; then
+    GALETTE_PATH=$(command -v galette)
+    echo "found: $GALETTE_PATH"
+else
+    echo "NOT FOUND"
+    echo "  ERROR: galette is required for PLD builds"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# Check for Java (needed for IPE)
+echo -n "Checking for java... "
+if command_exists java; then
+    JAVA_VERSION=$(java -version 2>&1 | head -n 1)
+    echo "found: $JAVA_VERSION"
+else
+    echo "NOT FOUND"
+    echo "  ERROR: java is required for MPLAB IPE"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# Find MPLAB IPE
+echo -n "Checking for MPLAB IPE... "
+IPE_PATH=$(find_ipe)
+if [ -n "$IPE_PATH" ]; then
+    echo "found: $IPE_PATH"
+else
+    echo "NOT FOUND"
+    echo "  ERROR: MPLAB IPE is required for flashing"
+    echo "  Set MPLAB_IPE environment variable or install MPLAB X IDE"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# Check for XC8 compiler (for future firmware builds)
+echo -n "Checking for xc8 compiler... "
+if command_exists xc8; then
+    XC8_PATH=$(command -v xc8)
+    echo "found: $XC8_PATH"
+elif command_exists xc8-cc; then
+    XC8_PATH=$(command -v xc8-cc)
+    echo "found: $XC8_PATH"
+else
+    echo "NOT FOUND"
+    echo "  ERROR: XC8 compiler is required for firmware builds"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# Find DFP (Device Family Pack)
+echo -n "Checking for PIC16F1xxxx DFP... "
+DFP_PATH=$(find_dfp)
+if [ -n "$DFP_PATH" ]; then
+    echo "found: $DFP_PATH"
+else
+    echo "NOT FOUND"
+    echo "  ERROR: Device Family Pack is required for firmware builds"
+    echo "  Install MPLAB X IDE to get the DFP"
+    ERRORS=$((ERRORS + 1))
+fi
+
+echo ""
+
+# Exit with failure if any required tool is missing
+if [ $ERRORS -gt 0 ]; then
+    echo "Configuration FAILED: $ERRORS required tool(s) not found"
+    echo "Please install the missing tools and run ./configure again"
+    exit 1
+fi
+
+# All tools found - write config.mk
+echo "All required tools found. Writing $CONFIG_FILE..."
+echo ""
+
+> "$CONFIG_FILE"
+echo "# Auto-generated by configure script" >> "$CONFIG_FILE"
+echo "# Run ./configure to regenerate" >> "$CONFIG_FILE"
+echo "" >> "$CONFIG_FILE"
+echo "HOST_OS := $OS" >> "$CONFIG_FILE"
+echo "" >> "$CONFIG_FILE"
+echo "GALETTE := galette" >> "$CONFIG_FILE"
+echo "JAVA := java" >> "$CONFIG_FILE"
+echo "IPE_JAR := $IPE_PATH" >> "$CONFIG_FILE"
+echo "IPE := \$(JAVA) -jar \"\$(IPE_JAR)\"" >> "$CONFIG_FILE"
+echo "XC8 := $XC8_PATH" >> "$CONFIG_FILE"
+# XC8 v3.x requires the xc8 subfolder within the DFP pack
+echo "DFP := $DFP_PATH/xc8" >> "$CONFIG_FILE"
+
+echo "Configuration written to $CONFIG_FILE"
+echo ""
+echo "You can override settings by editing $CONFIG_FILE"
+echo "or by setting environment variables before running make."
+

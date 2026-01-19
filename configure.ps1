@@ -1,0 +1,183 @@
+# PICkeeby Configure Script (PowerShell)
+# Detects build tools and generates config.mk
+
+$ConfigFile = "config.mk"
+$Errors = 0
+
+# Detect OS
+$OS = "windows"
+Write-Host "Detected OS: $OS"
+Write-Host ""
+
+# Function to find MPLAB IPE
+function Find-IPE {
+    # Check environment variable first
+    if ($env:MPLAB_IPE -and (Test-Path $env:MPLAB_IPE)) {
+        return $env:MPLAB_IPE
+    }
+
+    # Common MPLAB X installation paths on Windows
+    $searchPaths = @(
+        "C:\Program Files\Microchip\MPLABX\v*\mplab_platform\mplab_ipe\ipecmd.jar",
+        "C:\Program Files (x86)\Microchip\MPLABX\v*\mplab_platform\mplab_ipe\ipecmd.jar",
+        "D:\Program Files\Microchip\MPLABX\v*\mplab_platform\mplab_ipe\ipecmd.jar",
+        "$env:LOCALAPPDATA\Microchip\MPLABX\v*\mplab_platform\mplab_ipe\ipecmd.jar"
+    )
+
+    foreach ($pattern in $searchPaths) {
+        $found = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found) {
+            return $found.FullName
+        }
+    }
+
+    return $null
+}
+
+# Function to find XC8 compiler
+function Find-XC8 {
+    # Check if in PATH
+    $xc8 = Get-Command xc8 -ErrorAction SilentlyContinue
+    if ($xc8) { return $xc8.Source }
+
+    $xc8cc = Get-Command xc8-cc -ErrorAction SilentlyContinue
+    if ($xc8cc) { return $xc8cc.Source }
+
+    # Search common paths
+    $searchPaths = @(
+        "C:\Program Files\Microchip\xc8\v*\bin\xc8-cc.exe",
+        "C:\Program Files (x86)\Microchip\xc8\v*\bin\xc8-cc.exe"
+    )
+
+    foreach ($pattern in $searchPaths) {
+        $found = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue | Sort-Object -Descending | Select-Object -First 1
+        if ($found) {
+            return $found.FullName
+        }
+    }
+
+    return $null
+}
+
+# Function to find PIC16F1xxxx DFP
+function Find-DFP {
+    $searchPaths = @(
+        "C:\Program Files\Microchip\MPLABX\v*\packs\Microchip\PIC16F1xxxx_DFP\*",
+        "C:\Program Files (x86)\Microchip\MPLABX\v*\packs\Microchip\PIC16F1xxxx_DFP\*"
+    )
+
+    foreach ($pattern in $searchPaths) {
+        $found = Get-ChildItem -Path $pattern -Directory -ErrorAction SilentlyContinue | Sort-Object -Descending | Select-Object -First 1
+        if ($found) {
+            return $found.FullName
+        }
+    }
+
+    return $null
+}
+
+# Check for make
+Write-Host -NoNewline "Checking for make... "
+$make = Get-Command make -ErrorAction SilentlyContinue
+if ($make) {
+    Write-Host "found: $($make.Source)"
+} else {
+    Write-Host "NOT FOUND"
+    Write-Host "  ERROR: make is required to build this project"
+    $Errors++
+}
+
+# Check for galette
+Write-Host -NoNewline "Checking for galette... "
+$galette = Get-Command galette -ErrorAction SilentlyContinue
+if ($galette) {
+    Write-Host "found: $($galette.Source)"
+} else {
+    Write-Host "NOT FOUND"
+    Write-Host "  ERROR: galette is required for PLD builds"
+    $Errors++
+}
+
+# Check for Java
+Write-Host -NoNewline "Checking for java... "
+$java = Get-Command java -ErrorAction SilentlyContinue
+if ($java) {
+    $javaVersion = & java -version 2>&1 | Select-Object -First 1
+    Write-Host "found: $javaVersion"
+} else {
+    Write-Host "NOT FOUND"
+    Write-Host "  ERROR: java is required for MPLAB IPE"
+    $Errors++
+}
+
+# Find MPLAB IPE
+Write-Host -NoNewline "Checking for MPLAB IPE... "
+$ipePath = Find-IPE
+if ($ipePath) {
+    Write-Host "found: $ipePath"
+} else {
+    Write-Host "NOT FOUND"
+    Write-Host "  ERROR: MPLAB IPE is required for flashing"
+    Write-Host "  Set MPLAB_IPE environment variable or install MPLAB X IDE"
+    $Errors++
+}
+
+# Check for XC8 compiler
+Write-Host -NoNewline "Checking for xc8 compiler... "
+$xc8Path = Find-XC8
+if ($xc8Path) {
+    Write-Host "found: $xc8Path"
+} else {
+    Write-Host "NOT FOUND"
+    Write-Host "  ERROR: XC8 compiler is required for firmware builds"
+    $Errors++
+}
+
+# Find DFP (Device Family Pack)
+Write-Host -NoNewline "Checking for PIC16F1xxxx DFP... "
+$dfpPath = Find-DFP
+if ($dfpPath) {
+    Write-Host "found: $dfpPath"
+} else {
+    Write-Host "NOT FOUND"
+    Write-Host "  ERROR: Device Family Pack is required for firmware builds"
+    Write-Host "  Install MPLAB X IDE to get the DFP"
+    $Errors++
+}
+
+Write-Host ""
+
+# Exit with failure if any required tool is missing
+if ($Errors -gt 0) {
+    Write-Host "Configuration FAILED: $Errors required tool(s) not found"
+    Write-Host "Please install the missing tools and run .\configure.ps1 again"
+    exit 1
+}
+
+# All tools found - write config.mk
+Write-Host "All required tools found. Writing $ConfigFile..."
+Write-Host ""
+
+# Convert paths to forward slashes for Make compatibility
+$ipePathMake = $ipePath -replace '\\', '/'
+$xc8PathMake = $xc8Path -replace '\\', '/'
+# XC8 v3.x requires the xc8 subfolder within the DFP pack
+$dfpPathMake = ($dfpPath -replace '\\', '/') + '/xc8'
+
+Set-Content -Path $ConfigFile -Value "# Auto-generated by configure script"
+Add-Content -Path $ConfigFile -Value "# Run .\configure.ps1 to regenerate"
+Add-Content -Path $ConfigFile -Value ""
+Add-Content -Path $ConfigFile -Value "HOST_OS := $OS"
+Add-Content -Path $ConfigFile -Value ""
+Add-Content -Path $ConfigFile -Value "GALETTE := galette"
+Add-Content -Path $ConfigFile -Value "JAVA := java"
+Add-Content -Path $ConfigFile -Value "IPE_JAR := $ipePathMake"
+Add-Content -Path $ConfigFile -Value 'IPE := $(JAVA) -jar "$(IPE_JAR)"'
+Add-Content -Path $ConfigFile -Value "XC8 := $xc8PathMake"
+Add-Content -Path $ConfigFile -Value "DFP := $dfpPathMake"
+
+Write-Host "Configuration written to $ConfigFile"
+Write-Host ""
+Write-Host "You can override settings by editing $ConfigFile"
+Write-Host "or by setting environment variables before running make."
+

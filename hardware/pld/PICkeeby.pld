@@ -1,0 +1,83 @@
+GAL22V10
+PICkeeby
+
+; Pin 1-12 (left side)
+CLKOUT MODE A0 SIG1 /IBFCLRB SIG2 /CSB AUXB NC NC NC GND
+; Pin 13-24 (right side)
+NC LEDCS /IRQB IBF OBF HDATA1 HDATA0 LEIN HDATA5 LEDSTAT /RDDATAB VCC
+
+; ===== ADDRESS DECODE LOGIC =====
+
+; Write Data (A0=0, Write cycle active)
+; 6502: CSB=0 & SIG1(R/WB)=0 & SIG2(Phi2)=1 & A0=0
+; Z80:  CSB=0 & SIG2(WRB)=0 & A0=0
+; WRDATA goes to PIC via shared AUXB pin during IBF active (active HIGH)
+
+; Write Command (A0=1, Write cycle active)
+; 6502: CSB=0 & SIG1(R/WB)=0 & SIG2(Phi2)=1 & A0=1
+; Z80:  CSB=0 & SIG2(WRB)=0 & A0=1
+; WRCMD goes to PIC via shared AUXB pin during IBF active (active LOW)
+
+; Read Data (A0=0, Read cycle active)
+; 6502: CSB=0 & SIG1(R/WB)=1 & SIG2(Phi2)=1 & A0=0
+; Z80:  CSB=0 & SIG1(RDB)=0 & A0=0
+RDDATAB = /MODE * /CSB * SIG1 * SIG2 * /A0
+        + MODE * /CSB * /SIG1 * /A0
+
+; Read Status (A0=1, Read cycle active)
+; 6502: CSB=0 & SIG1(R/WB)=1 & SIG2(Phi2)=1 & A0=1
+; Z80:  CSB=0 & SIG1(RDB)=0 & A0=1
+; Note: Status read active goes to LEDSTAT output only
+LEDSTAT = /MODE * /CSB * SIG1 * SIG2 * A0
+        + MODE * /CSB * /SIG1 * A0
+
+; ===== 373 LATCH ENABLE =====
+; 6502: R/WB (transparent during read, latch during write)
+; Z80:  !WRB (transparent during write active, latch when done)
+LEIN = /MODE * SIG1
+     + MODE * /SIG2
+
+; ===== OBF FLIP-FLOP =====
+; Set when PIC clocks out data (CLKOUT rising)
+; Cleared by global AR when host reads data
+OBF.R = VCC
+
+; ===== IBF - SR LATCH STYLE =====
+; Set when host writes (write-active & CSB), cleared by PIC (IBFCLRB)
+; Output directly connected to PIC RA4 (pin 3) for sensing
+; 6502: Set during write cycle (R/WB=LOW, CSB=LOW, Phi2=HIGH)
+; Z80:  Set during write cycle (WRB=LOW, CSB=LOW)
+IBF = /MODE * /CSB * /SIG1 * SIG2 * /IBFCLRB
+    + MODE * /CSB * /SIG2 * /IBFCLRB
+    + IBF * /IBFCLRB
+
+; ===== ACTIVE LOW INTERRUPT =====
+; IRQB active (low) when output buffer has data
+IRQB = OBF
+
+; ===== STATUS OUTPUTS (ACTIVE HIGH FOR TRI-STATE ENABLE) =====
+; Drive status bits onto host data bus during status read
+HDATA0.T = OBF
+HDATA0.E = LEDSTAT
+
+HDATA1.T = IBF
+HDATA1.E = LEDSTAT
+
+; HDATA5 - AUXB status bit (active HIGH = data from Port 2)
+; During status read: pass through AUXB input (latched at CLK_OUT time)
+; During IBF active: pass through A0 so PIC can distinguish cmd/data
+; PIC reads this when it detects IBF to know if command or data
+HDATA5.T = AUXB
+HDATA5.E = LEDSTAT
+
+; ===== LED DRIVERS =====
+LEDCS = CSB
+
+; ===== GLOBAL ASYNC RESET =====
+; Clears OBF when host reads data port
+AR = RDDATAB
+
+DESCRIPTION
+PICkeeby Dual PS/2 Controller
+OBF registered with AR, IBF combinatorial SR-latch
+AUXB passed through for Port 2 identification
