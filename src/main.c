@@ -113,7 +113,7 @@ int main(void) {
 
         // Check for host input
         if (host_ibf_active()) {
-            bool is_cmd = host_get_a0();
+            bool is_cmd = true; // DIAG: bypass CLC1, force command mode
             uint8_t byte = host_read_input();
             i8042_process_byte(byte, is_cmd);
         }

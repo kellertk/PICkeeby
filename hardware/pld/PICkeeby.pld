@@ -4,7 +4,7 @@ PICkeeby
 ; Pin 1-12 (left side)
 CLKOUT MODE A0 SIG1 /IBFCLRB SIG2 /CSB AUXB NC NC NC GND
 ; Pin 13-24 (right side)
-NC LEDCS /IRQB IBF OBF HDATA1 HDATA0 LEIN HDATA5 LEDSTAT /RDDATAB VCC
+NC LEDCS IRQB IBF OBF HDATA1 HDATA0 LEIN HDATA5 LEDSTAT /RDDATAB VCC
 
 ; ===== ADDRESS DECODE LOGIC =====
 
@@ -21,20 +21,24 @@ NC LEDCS /IRQB IBF OBF HDATA1 HDATA0 LEIN HDATA5 LEDSTAT /RDDATAB VCC
 ; Read Data (A0=0, Read cycle active)
 ; 6502: CSB=0 & SIG1(R/WB)=1 & SIG2(Phi2)=1 & A0=0
 ; Z80:  CSB=0 & SIG1(RDB)=0 & A0=0
-RDDATAB = /MODE * /CSB * SIG1 * SIG2 * /A0
-        + MODE * /CSB * /SIG1 * /A0
+RDDATAB = /MODE * CSB * SIG1 * SIG2 * /A0
+        + MODE * CSB * /SIG1 * /A0
 
 ; Read Status (A0=1, Read cycle active)
 ; 6502: CSB=0 & SIG1(R/WB)=1 & SIG2(Phi2)=1 & A0=1
 ; Z80:  CSB=0 & SIG1(RDB)=0 & A0=1
 ; Note: Status read active goes to LEDSTAT output only
-LEDSTAT = /MODE * /CSB * SIG1 * SIG2 * A0
-        + MODE * /CSB * /SIG1 * A0
+LEDSTAT = /MODE * CSB * SIG1 * SIG2 * A0
+        + MODE * CSB * /SIG1 * A0
 
 ; ===== 373 LATCH ENABLE =====
-; 6502: R/WB (transparent during read, latch during write)
+; 6502: Phi2 gated by /IBF — transparent while Phi2 HIGH and no
+;       pending write.  When IBF sets (during a write cycle), the
+;       feedback forces LEIN LOW immediately, latching valid write
+;       data while Phi2 is still HIGH.  Stays latched until the PIC
+;       clears IBF.
 ; Z80:  !WRB (transparent during write active, latch when done)
-LEIN = /MODE * SIG1
+LEIN = /MODE * SIG2 * /IBF
      + MODE * /SIG2
 
 ; ===== OBF FLIP-FLOP =====
@@ -47,13 +51,18 @@ OBF.R = VCC
 ; Output directly connected to PIC RA4 (pin 3) for sensing
 ; 6502: Set during write cycle (R/WB=LOW, CSB=LOW, Phi2=HIGH)
 ; Z80:  Set during write cycle (WRB=LOW, CSB=LOW)
-IBF = /MODE * /CSB * /SIG1 * SIG2 * /IBFCLRB
-    + MODE * /CSB * /SIG2 * /IBFCLRB
+IBF = /MODE * CSB * /SIG1 * SIG2 * /IBFCLRB
+    + MODE * CSB * /SIG2 * /IBFCLRB
     + IBF * /IBFCLRB
 
 ; ===== ACTIVE LOW INTERRUPT =====
-; IRQB active (low) when output buffer has data
-IRQB = OBF
+; IRQB active (low) when output buffer has data.
+; Open-drain style: pin defined active-high so we can use .E for
+; tri-state control.  No .T term = macrocell outputs 0 = pin LOW
+; when enabled.  Floats when idle so the host bus pull-up holds
+; it HIGH.
+IRQB.T = GND
+IRQB.E = OBF
 
 ; ===== STATUS OUTPUTS (ACTIVE HIGH FOR TRI-STATE ENABLE) =====
 ; Drive status bits onto host data bus during status read

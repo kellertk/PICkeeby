@@ -17,21 +17,23 @@ PICkeeby emulates an i8042 keyboard controller, bridging PS/2 devices to a host 
 
 The firmware is organized into four modules:
 
-| Module | File | Purpose |
-|--------|------|---------|
-| PS/2 Protocol | ps2.c/h | Bidirectional PS/2 communication |
-| Host Interface | host.c/h | Latch control and data transfer |
+| Module          | File      | Purpose                                |
+| --------------- | --------- | -------------------------------------- |
+| PS/2 Protocol   | ps2.c/h   | Bidirectional PS/2 communication       |
+| Host Interface  | host.c/h  | Latch control and data transfer        |
 | i8042 Emulation | i8042.c/h | Command processing and port management |
-| Main | main.c | Initialization and main loop |
+| Main            | main.c    | Initialization and main loop           |
 
 ### Data Flow
 
 **Device → Host (scan codes):**
+
 ```
 PS/2 Device → ps2_clock_isr → rx_queue → i8042_task → host_send_data → output_queue → host_pump_output → 74HCT574 → Host
 ```
 
 **Host → Device (commands):**
+
 ```
 Host → 74HCT373 → IBF → host_read_input → i8042_process_byte → ps2_tx_write → tx_queue → ps2_task → PS/2 Device
 ```
@@ -45,6 +47,7 @@ Host → 74HCT373 → IBF → host_read_input → i8042_process_byte → ps2_tx_
 Implements the PS/2 protocol using bit-banged I/O with interrupt-driven clock handling.
 
 **State Machine:**
+
 ```
                     start bit (DATA=0)
         IDLE ─────────────────────────────> RX
@@ -63,6 +66,7 @@ Implements the PS/2 protocol using bit-banged I/O with interrupt-driven clock ha
 ```
 
 **Receive (device-initiated):**
+
 1. Device pulls DATA low (start bit)
 2. ISR detects start, enters RX state
 3. 8 data bits shifted in on falling clock edges
@@ -71,6 +75,7 @@ Implements the PS/2 protocol using bit-banged I/O with interrupt-driven clock ha
 6. Byte queued if valid
 
 **Transmit (host-initiated):**
+
 1. `ps2_task()` detects pending TX data
 2. PIC holds CLK low for 150µs (request-to-send)
 3. PIC pulls DATA low (start bit)
@@ -79,6 +84,7 @@ Implements the PS/2 protocol using bit-banged I/O with interrupt-driven clock ha
 6. Device sends ACK (pulls DATA low)
 
 **Functions:**
+
 - `ps2_clock_isr(port)` — Called from ISR on clock falling edge
 - `ps2_task()` — Initiates pending transmissions, checks for timeouts
 - `ps2_inhibit(port, inhibit)` — Enable/disable port communication
@@ -102,6 +108,7 @@ CLC1 Configuration:
 ```
 
 **Output Flow (PIC → Host):**
+
 ```
 1. Set AUXB (port identifier)
 2. Drive IDATA bus with data byte
@@ -110,6 +117,7 @@ CLC1 Configuration:
 ```
 
 **Input Flow (Host → PIC):**
+
 ```
 1. Host writes to data or command register → GAL sets IBF, CLC latches A0
 2. PIC polls IBF_GetValue()
@@ -121,6 +129,7 @@ CLC1 Configuration:
 ```
 
 **Functions:**
+
 - `host_init()` — Initialize latches and CLC1 for A0 latching
 - `host_send_data(data, aux)` — Queue byte for host
 - `host_pump_output()` — Transfer one queued byte to output latch
@@ -133,6 +142,7 @@ CLC1 Configuration:
 Emulates i8042 command set (without A20 gate or system reset).
 
 **Command Byte (internal register, read via 0x20, write via 0x60):**
+
 ```
 Bit 6: XLAT    - Scan code translation (stored but not implemented)
 Bit 5: AUX_DIS - Disable auxiliary port (mouse)
@@ -144,34 +154,36 @@ Bit 0: KBD_INT - Keyboard interrupt enable
 
 **Supported Commands:**
 
-| Command | Function |
-|---------|----------|
-| 0x20 | Read command byte |
-| 0x21-0x3F | Read EEPROM[1-31] |
-| 0x60 | Write command byte |
-| 0x61-0x7F | Write EEPROM[1-31] |
-| 0xA7 | Disable auxiliary port |
-| 0xA8 | Enable auxiliary port |
-| 0xA9 | Test auxiliary port (returns 0x00) |
-| 0xAA | Controller self-test (returns 0x55) |
-| 0xAB | Test keyboard port (returns 0x00) |
-| 0xAD | Disable keyboard port |
-| 0xAE | Enable keyboard port |
-| 0xC0 | Read input port |
-| 0xD0 | Read output port |
-| 0xD1 | Write output port (ignored) |
-| 0xD2 | Write keyboard output buffer |
-| 0xD3 | Write auxiliary output buffer |
-| 0xD4 | Write to auxiliary device |
-| 0xFE | Reset keyboard controller |
+| Command   | Function                            |
+| --------- | ----------------------------------- |
+| 0x20      | Read command byte                   |
+| 0x21-0x3F | Read EEPROM[1-31]                   |
+| 0x60      | Write command byte                  |
+| 0x61-0x7F | Write EEPROM[1-31]                  |
+| 0xA7      | Disable auxiliary port              |
+| 0xA8      | Enable auxiliary port               |
+| 0xA9      | Test auxiliary port (returns 0x00)  |
+| 0xAA      | Controller self-test (returns 0x55) |
+| 0xAB      | Test keyboard port (returns 0x00)   |
+| 0xAD      | Disable keyboard port               |
+| 0xAE      | Enable keyboard port                |
+| 0xC0      | Read input port                     |
+| 0xD0      | Read output port                    |
+| 0xD1      | Write output port (ignored)         |
+| 0xD2      | Write keyboard output buffer        |
+| 0xD3      | Write auxiliary output buffer       |
+| 0xD4      | Write to auxiliary device           |
+| 0xFE      | Reset keyboard controller           |
 
 **Command vs Data Routing:**
 
 The hardware provides only one write path (IBF), with no A0 distinction. Commands are identified by value:
+
 - Bytes in command ranges (0x20-0x3F, 0x60-0x7F, 0xA7-0xAF, etc.) → processed as commands
 - Other bytes → forwarded to keyboard via PS/2
 
 Multi-byte commands use a pending state machine:
+
 ```c
 typedef enum {
     PEND_NONE,
@@ -190,6 +202,7 @@ The i8042 internal RAM commands (0x20-0x3F read, 0x60-0x7F write) are mapped to 
 ### main.c
 
 **Main Loop:**
+
 ```c
 while (1) {
     ps2_task();        // Initiate pending PS/2 transmissions
@@ -211,19 +224,19 @@ while (1) {
 
 ## Pin Assignments
 
-| Pin | Port | Function | Direction |
-|-----|------|----------|-----------|
-| 19 | RA0 | CLK_OUT | Output |
-| 18 | RA1 | OE_INB | Output |
-| 17 | RA2 | IBF_CLRB | Output |
-| 4 | RA3 | A0 | Input (CLC1 D input) |
-| 3 | RA4 | IBF | Input (CLC1 CLK input) |
-| 2 | RA5 | AUXB | Output |
-| 13 | RB4 | PS2_CLK1 | Bidirectional (open-drain) |
-| 12 | RB5 | PS2_DATA1 | Bidirectional (open-drain) |
-| 11 | RB6 | PS2_CLK2 | Bidirectional (open-drain) |
-| 10 | RB7 | PS2_DATA2 | Bidirectional (open-drain) |
-| 16-9 | RC0-7 | IDATA[0-7] | Bidirectional |
+| Pin  | Port  | Function   | Direction                  |
+| ---- | ----- | ---------- | -------------------------- |
+| 19   | RA0   | CLK_OUT    | Output                     |
+| 18   | RA1   | OE_INB     | Output                     |
+| 17   | RA2   | IBF_CLRB   | Output                     |
+| 4    | RA3   | A0         | Input (CLC1 D input)       |
+| 3    | RA4   | IBF        | Input (CLC1 CLK input)     |
+| 2    | RA5   | AUXB       | Output                     |
+| 13   | RB4   | PS2_CLK1   | Bidirectional (open-drain) |
+| 12   | RB5   | PS2_DATA1  | Bidirectional (open-drain) |
+| 11   | RB6   | PS2_CLK2   | Bidirectional (open-drain) |
+| 10   | RB7   | PS2_DATA2  | Bidirectional (open-drain) |
+| 16-9 | RC0-7 | IDATA[0-7] | Bidirectional              |
 
 ---
 
@@ -253,10 +266,12 @@ IOC triggers on falling edge of PS/2 clock (IOCBN = 0x50).
 ## Timing Considerations
 
 **PS/2 Clock:** 10-16.7 kHz (60-100 µs per bit)
+
 - ISR must complete within ~30 µs to catch next edge
 - At 32 MHz, ~960 instruction cycles available
 
 **Host Read Rate:** Depends on host software polling interval
+
 - Output queue (32 entries) buffers scan codes from PS/2 devices
 - If host doesn't read before queue fills, new data is dropped
 - OBF flag in status register tells host when data is waiting
@@ -264,6 +279,7 @@ IOC triggers on falling edge of PS/2 clock (IOCBN = 0x50).
 - The output buffer can hold approximately 500 ms of keystrokes from a fast typist before dropping data
 
 **Host Write Rate:** Not critical
+
 - PIC polls IBF in main loop, typically sub-millisecond response
 - Host must wait for IBF to clear before writing next byte
 

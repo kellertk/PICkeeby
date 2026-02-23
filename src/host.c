@@ -38,10 +38,13 @@ void host_init(void) {
     IBF_CLRB_SetHigh();
     AUXB_SetLow();
 
+    // Map RA4 (IBF) to CLCIN1 via PPS (default maps: CLCIN3=RA3 is already A0)
+    CLCIN1PPS = 0x04;
+
     // Configure CLC1 as D flip-flop to latch A0 on IBF rising edge
-    // D input: RA3 (A0), CLK input: RA4 (IBF)
-    CLC1SEL0 = 0x03;    // CLCIN0 = RA3 (D input)
-    CLC1SEL1 = 0x04;    // CLCIN1 = RA4 (CLK input)
+    // D input: CLCIN3 = RA3 (A0), CLK input: CLCIN1 = RA4 (IBF)
+    CLC1SEL0 = 0x03;    // Data Source 1 = CLCIN3 = RA3 (A0)
+    CLC1SEL1 = 0x01;    // Data Source 2 = CLCIN1 = RA4 (IBF)
     CLC1SEL2 = 0x00;    // Unused
     CLC1SEL3 = 0x00;    // Unused
     CLC1GLS0 = 0x02;    // Gate 1: CLCIN0 (D)

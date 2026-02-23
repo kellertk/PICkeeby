@@ -12,5 +12,13 @@ hardware/kicad/*.dsn
 hardware/kicad/*.ses
 hardware/kicad/*.rules
 hardware/kicad/*.net
+hardware/kicad/*.csv
+hardware/kicad/*-bak
 
 MPLABXLog.xml
+
+hardware/pld/*.chp
+hardware/pld/*.fus
+hardware/pld/*.pin
+hardware/pld/*.jed
+
