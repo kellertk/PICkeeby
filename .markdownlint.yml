@@ -1,0 +1,10 @@
+---
+$schema: "https://raw.githubusercontent.com/DavidAnson/markdownlint/v0.40.0/schema/markdownlint-config-schema.json"
+heading-style:
+  style: "atx"
+ul-style:
+  style: asterisk
+line-length:
+  stern: true
+  code_blocks: false
+  tables: false

@@ -22,3 +22,5 @@ hardware/pld/*.fus
 hardware/pld/*.pin
 hardware/pld/*.jed
 
+AGENTS.md
+.claude

@@ -4,9 +4,9 @@
 
 **Architecture:**
 
-```
+```text
                           HOST BUS (6502 or Z80)
-                      D0-D7  A0  CSB  SIG1  SIG2
+                      D0-D7  A0  /CS  SIG1  SIG2
                         |     |   |    |     |
         +---------------+-----+---+----+-----+-----------+
         |               |         |          |           |
@@ -20,7 +20,7 @@
         |    |   (Decoder + Status + OBF/IBF)      |     |
         |    +----+--------+----------+------------+     |
         |         |        |          |                  |
-        |     RD_DATAB  LED_STATUS  Signals              |
+        |     /RD_DATA  LED_STATUS  Signals              |
         |         |        |                             |
 +-------+----+    |    +===+===+           +-------------+-------+
 | U2: 574    |    |    | (GAL) |           | U3: 373             |
@@ -53,31 +53,28 @@
 | U4  | ATF22V10C-15PU  | Address Decoder / Status Flags / Mode Logic |
 | U5  | 74AHCT1G14      | Schmitt-trigger inverter (SIG2 → /SIG2)     |
 
-**Important:** ATF22V10**C** variant is required!
-
 ### Other Components
 
-| Ref    | Part            | Function                             |
-| ------ | --------------- | ------------------------------------ |
-| C1, C2 | 100nF, 10nF     | U1 decoupling                        |
-| C3, C4 | 100nF, 10nF     | U2 decoupling                        |
-| C5, C6 | 100nF, 10nF     | U3 decoupling                        |
-| C7, C8 | 100nF, 10nF     | U4 decoupling                        |
-| C9     | 100nF           | U5 decoupling                        |
-| R2, R3 | 4.7K            | PS/2 Port 1 pull-ups                 |
-| R4, R5 | 4.7K            | PS/2 Port 2 pull-ups                 |
-| R6-R9  | 220Ω            | LED current limiters (×4)            |
-| R10    | 220Ω            | CS LED current limiter               |
-| R11    | 10K             | MODE pull-up                         |
-| D1     | 3mm LED (green) | Chip select indicator                |
-| D2     | 3mm LED (red)   | Output buffer full indicator         |
-| D3     | 3mm LED (red)   | Input buffer full indicator          |
-| D4     | 3mm LED (green) | Host polling indicator               |
-| J1     | Mini-DIN-6      | PS/2 Port 1 connector                |
-| J2     | Mini-DIN-6      | PS/2 Port 2 connector                |
-| J3     | 1x3 header      | Mode select jumper                   |
-| J4     | 1x15 header     | Host bus connector                   |
-| J5     | 1x6 header      | ICSP programming header              |
+| Ref    | Part             | Function                     |
+| ------ | ---------------- | ---------------------------- |
+| C1     | 1µF              | U1 decoupling                |
+| C2     | 1µF              | U2 decoupling                |
+| C3     | 1µF              | U3 decoupling                |
+| C4     | 1µF              | U4 decoupling                |
+| C5     | 1µF              | U5 decoupling                |
+| R1, R2 | 4.7K             | PS/2 Port 1 pull-ups         |
+| R3, R4 | 4.7K             | PS/2 Port 2 pull-ups         |
+| R5-R8  | 300Ω             | LED current limiters (×4)    |
+| R9     | 10K              | MODE pull-up                 |
+| D1     | 3mm LED (yellow) | Chip select indicator        |
+| D2     | 3mm LED (red)    | Output buffer full indicator |
+| D3     | 3mm LED (red)    | Input buffer full indicator  |
+| D4     | 3mm LED (green)  | Host polling indicator       |
+| J1     | Mini-DIN-6       | PS/2 Port 1 connector        |
+| J2     | Mini-DIN-6       | PS/2 Port 2 connector        |
+| J3     | 1x3 header       | Mode select jumper           |
+| J4     | 1x15 header      | Host bus connector           |
+| J5     | 1x6 header       | ICSP programming header      |
 
 ---
 
@@ -89,19 +86,19 @@
 | IDATA0-7   | Internal data bus (between PIC and latches)                    |
 | A0         | Address bit 0 from host (to GAL only)                          |
 | A0_REG     | Registered A0 from GAL (to PIC RA3)                            |
-| SIG1       | R/WB (6502) or RDB (Z80)                                       |
-| SIG2       | Φ2 (6502) or WRB (Z80)                                         |
+| SIG1       | R/W (6502) or /RD (Z80)                                       |
+| SIG2       | Φ2 (6502) or /WR (Z80)                                         |
 | /SIG2      | Inverted SIG2 from U5 (GAL registered clock)                   |
-| RD_DATAB   | Active LOW: host reading data port                             |
+| /RD_DATA   | Active LOW: host reading data port                             |
 | LED_STATUS | Active HIGH: host reading status                               |
-| IRQB       | Active LOW: interrupt to host                                  |
+| /IRQ       | Active LOW: interrupt to host                                  |
 | CLK_OUT    | Rising edge: latch output data, set OBF                        |
-| OE_INB     | Active LOW: enable input latch outputs                         |
-| IBF_CLRB   | Active LOW: clear IBF flag (held until next clock edge)        |
+| /OE_IN     | Active LOW: enable input latch outputs                         |
+| /IBF_CLR   | Active LOW: clear IBF flag (held until next clock edge)        |
 | LE_IN      | Latch Enable for input buffer: HIGH=transparent, LOW=latched   |
 | OBF        | Output Buffer Full (status bit 0)                              |
 | IBF        | Input Buffer Full (status bit 1, registered)                   |
-| AUXB       | Auxiliary output buffer Full (status bit 5) - data from Port 2 |
+| /AUX       | Auxiliary output buffer Full (status bit 5) - data from Port 2 |
 | PS2_CLK1   | PS/2 Port 1 clock                                              |
 | PS2_DATA1  | PS/2 Port 1 data                                               |
 | PS2_CLK2   | PS/2 Port 2 clock                                              |
@@ -111,7 +108,7 @@
 
 ## Bus Mode Selection (J3)
 
-```
+```text
 J3: Mode Select (active LOW selects mode)
   [1-2] = 6502 mode (MODE pin LOW)
   [2-3] = Z80 mode  (MODE pin HIGH)
@@ -123,7 +120,7 @@ J3: Mode Select (active LOW selects mode)
 
 Pin 1: GND
 Pin 2: MODE (to U4)
-Pin 3: +5V via 10K pull-up (R11)
+Pin 3: +5V via 10K pull-up (R9)
 ```
 
 ### SIG1 and SIG2
@@ -132,8 +129,8 @@ These set the type of bus for the host: a 6502-style bus or a Z80-style bus.
 
 | J4 Pin | Signal | 6502 Mode        | Z80 Mode        |
 | ------ | ------ | ---------------- | --------------- |
-| 10     | SIG1   | R/WB (HIGH=read) | RDB (LOW=read)  |
-| 12     | SIG2   | Φ2 (clock phase) | WRB (LOW=write) |
+| 10     | SIG1   | R/W (HIGH=read) | /RD (LOW=read)  |
+| 12     | SIG2   | Φ2 (clock phase) | /WR (LOW=write) |
 
 ---
 
@@ -144,7 +141,7 @@ as the i8042.
 
 | A0  | R/W                | Internal address decode result |
 | --- | ------------------ | ------------------------------ |
-| 0   | Read Data port     | RD_DATAB                       |
+| 0   | Read Data port     | /RD_DATA                       |
 | 0   | Write Data port    | (write with A0=0)              |
 | 1   | Read Status port   | LED_STATUS                     |
 | 1   | Write Command port | (write with A0=1)              |
@@ -153,12 +150,12 @@ as the i8042.
 
 ## U1: PIC16F18344-I/P (DIP-20)
 
-```
+```text
               +-----------+
         +5V --|1        20|-- GND
-       AUXB --|2        19|-- CLK_OUT
-        IBF --|3        18|-- OE_INB
-         A0 --|4        17|-- IBF_CLRB
+       /AUX --|2        19|-- CLK_OUT
+        IBF --|3        18|-- /OE_IN
+         A0 --|4        17|-- /IBF_CLR
      IDATA5 --|5        16|-- IDATA0
      IDATA4 --|6        15|-- IDATA1
      IDATA3 --|7        14|-- IDATA2
@@ -168,12 +165,12 @@ as the i8042.
               +-----------+
 ```
 
-### Pin Connections
+### U1 Pin Connections
 
 | Pin | Name | Signal    | To                          |
 | --- | ---- | --------- | --------------------------- |
 | 1   | VDD  | +5V       | +5V, J5-2                   |
-| 2   | RA5  | AUXB      | U4-8                        |
+| 2   | RA5  | /AUX      | U4-8                        |
 | 3   | RA4  | IBF       | U4-16                       |
 | 4   | RA3  | A0_REG    | U4-14                       |
 | 5   | RC5  | IDATA5    | U2-7, U3-15                 |
@@ -181,35 +178,35 @@ as the i8042.
 | 7   | RC3  | IDATA3    | U2-5, U3-9                  |
 | 8   | RC6  | IDATA6    | U2-8, U3-16                 |
 | 9   | RC7  | IDATA7    | U2-9, U3-19                 |
-| 10  | RB7  | PS2_DATA2 | J2-1, R5 to +5V             |
-| 11  | RB6  | PS2_CLK2  | J2-5, R4 to +5V             |
-| 12  | RB5  | PS2_DATA1 | J1-1, R3 to +5V             |
-| 13  | RB4  | PS2_CLK1  | J1-5, R2 to +5V             |
+| 10  | RB7  | PS2_DATA2 | J2-1, R4 to +5V             |
+| 11  | RB6  | PS2_CLK2  | J2-5, R3 to +5V             |
+| 12  | RB5  | PS2_DATA1 | J1-1, R2 to +5V             |
+| 13  | RB4  | PS2_CLK1  | J1-5, R1 to +5V             |
 | 14  | RC2  | IDATA2    | U2-4, U3-6                  |
 | 15  | RC1  | IDATA1    | U2-3, U3-5                  |
 | 16  | RC0  | IDATA0    | U2-2, U3-2                  |
-| 17  | RA2  | IBF_CLRB  | U4-5                        |
-| 18  | RA1  | OE_INB    | U3-1, J5-5 (ICSPCLK)        |
+| 17  | RA2  | /IBF_CLR  | U4-5                        |
+| 18  | RA1  | /OE_IN    | U3-1, J5-5 (ICSPCLK)        |
 | 19  | RA0  | CLK_OUT   | U4-9, U2-11, J5-4 (ICSPDAT) |
 | 20  | VSS  | GND       | GND, J5-3                   |
 
-**C1 (100nF), C2 (10nF):** Pin 1 to Pin 20
+**C1 (1µF):** Pin 1 to Pin 20
 
 **A0 Latching:** The GAL captures A0 into a registered output (A0_REG) on the
-falling edge of PHI2 (6502) or falling edge of WRB (Z80), using the /SIG2
-clock from U5. The PIC reads A0_REG directly from RA3 to distinguish between
-data register writes (A0=0) and command register writes (A0=1). This replaces
-the previous CLC1-based approach and provides hundreds of nanoseconds of setup
+falling edge of PHI2 (6502) or falling edge of /WR (Z80), using the /SIG2 clock
+from U5. The PIC reads A0_REG directly from RA3 to distinguish between data
+register writes (A0=0) and command register writes (A0=1). This replaces the
+previous CLC1-based approach and provides hundreds of nanoseconds of setup
 margin for A0 capture.
 
 ## U2: 74AHCT574 - Output Latch (SOIC-20)
 
-PIC writes scan codes here. Rising edge of CLK_OUT latches data.
-Host reads when RD_DATAB enables outputs.
+PIC writes scan codes here. Rising edge of CLK_OUT latches data. Host reads when
+/RD_DATA enables outputs.
 
-```
+```text
            +-----------+
-RD_DATAB --|1        20|-- +5V
+/RD_DATA --|1        20|-- +5V
   IDATA0 --|2        19|-- HDATA0
   IDATA1 --|3        18|-- HDATA1
   IDATA2 --|4        17|-- HDATA2
@@ -222,11 +219,11 @@ RD_DATAB --|1        20|-- +5V
            +-----------+
 ```
 
-### Pin Connections
+### U2 Pin Connections
 
 | Pin | Name | Signal   | To                 |
 | --- | ---- | -------- | ------------------ |
-| 1   | OEB  | RD_DATAB | U4-23              |
+| 1   | OEB  | /RD_DATA | U4-23              |
 | 2   | D0   | IDATA0   | U1-16, U3-2        |
 | 3   | D1   | IDATA1   | U1-15, U3-5        |
 | 4   | D2   | IDATA2   | U1-14, U3-6        |
@@ -247,7 +244,7 @@ RD_DATAB --|1        20|-- +5V
 | 19  | Q0   | HDATA0   | J4-1, U3-3, U4-19  |
 | 20  | VCC  | +5V      | +5V                |
 
-**C3 (100nF), C4 (10nF):** Pin 20 to Pin 10
+**C2 (1µF):** Pin 20 to Pin 10
 
 ---
 
@@ -255,9 +252,9 @@ RD_DATAB --|1        20|-- +5V
 
 Host writes commands here. Transparent when LE=HIGH, latches when LE goes LOW.
 
-```
+```text
          +-----------+
-OE_INB --|1        20|-- +5V
+/OE_IN --|1        20|-- +5V
 IDATA0 --|2        19|-- IDATA7
 HDATA0 --|3        18|-- HDATA7
 HDATA1 --|4        17|-- HDATA6
@@ -270,11 +267,11 @@ IDATA3 --|9        12|-- IDATA4
          +-----------+
 ```
 
-### Pin Connections
+### U3 Pin Connections
 
 | Pin | Name | Signal | To                 |
 | --- | ---- | ------ | ------------------ |
-| 1   | OEB  | OE_INB | U1-18              |
+| 1   | OEB  | /OE_IN | U1-18              |
 | 2   | Q0   | IDATA0 | U1-16, U2-2        |
 | 3   | D0   | HDATA0 | J4-1, U2-19, U4-19 |
 | 4   | D1   | HDATA1 | J4-2, U2-18, U4-18 |
@@ -295,35 +292,35 @@ IDATA3 --|9        12|-- IDATA4
 | 19  | Q7   | IDATA7 | U1-9, U2-9         |
 | 20  | VCC  | +5V    | +5V                |
 
-**C5 (100nF), C6 (10nF):** Pin 20 to Pin 10
+**C3 (1µF):** Pin 20 to Pin 10
 
 ---
 
 ## U4: ATF22V10C - GAL (DIP-24)
 
 Combines address decoder, status buffer, mode-switching logic, and buffer flags.
-Pin 1 is the registered clock input, driven by /SIG2 from U5. IBF and A0_REG
-are registered outputs clocked on /SIG2 rising edge (= SIG2 falling edge).
-OBF is a combinational SR-latch.
+Pin 1 is the registered clock input, driven by /SIG2 from U5. IBF and A0_REG are
+registered outputs clocked on /SIG2 rising edge (= SIG2 falling edge). OBF is a
+combinational SR-latch.
 
-```
+```text
            +-----------+
    /SIG2 --|1        24|-- +5V
-    MODE --|2        23|-- RD_DATAB
+    MODE --|2        23|-- /RD_DATA
       A0 --|3        22|-- LED_STATUS
     SIG1 --|4        21|-- HDATA5
-IBF_CLRB --|5        20|-- LE_IN
+/IBF_CLR --|5        20|-- LE_IN
     SIG2 --|6        19|-- HDATA0
-     CSB --|7        18|-- HDATA1
-    AUXB --|8        17|-- OBF
+     /CS --|7        18|-- HDATA1
+    /AUX --|8        17|-- OBF
  CLK_OUT --|9        16|-- IBF
-         x-|10       15|-- IRQB
+         x-|10       15|-- /IRQ
          x-|11       14|-- A0_REG
      GND --|12       13|-- GND (/OE)
            +-----------+
 ```
 
-### Pin Connections
+### U4 Pin Connections
 
 | Pin | Name | Signal     | To                   |
 | --- | ---- | ---------- | -------------------- |
@@ -331,28 +328,28 @@ IBF_CLRB --|5        20|-- LE_IN
 | 2   | I    | MODE       | J3-2                 |
 | 3   | I    | A0         | J4-9                 |
 | 4   | I    | SIG1       | J4-10                |
-| 5   | I    | IBF_CLRB   | U1-17                |
+| 5   | I    | /IBF_CLR   | U1-17                |
 | 6   | I    | SIG2       | J4-12, U5 input      |
-| 7   | I    | CSB        | J4-11, R10 to D1     |
-| 8   | I    | AUXB       | U1-2                 |
+| 7   | I    | /CS        | J4-11, R5 to D1      |
+| 8   | I    | /AUX       | U1-2                 |
 | 9   | I    | CLK_OUT    | U1-19, U2-11         |
 | 10  | I    | nc         | GND                  |
 | 11  | I    | nc         | GND                  |
 | 12  | GND  | GND        | GND                  |
 | 13  | I/O  | /OE        | GND (always enabled) |
 | 14  | I/O  | A0_REG     | U1-4                 |
-| 15  | I/O  | IRQB       | J4-13                |
-| 16  | I/O  | IBF        | U1-3, R8 to D3 anode |
-| 17  | I/O  | OBF        | R7 to D2 anode       |
+| 15  | I/O  | /IRQ       | J4-13                |
+| 16  | I/O  | IBF        | U1-3, R7 to D3 anode |
+| 17  | I/O  | OBF        | R6 to D2 anode       |
 | 18  | I/O  | HDATA1     | J4-2, U2-18, U3-4    |
 | 19  | I/O  | HDATA0     | J4-1, U2-19, U3-3    |
 | 20  | I/O  | LE_IN      | U3-11                |
 | 21  | I/O  | HDATA5     | J4-6, U2-14, U3-14   |
-| 22  | I/O  | LED_STATUS | R9 to D4 anode       |
-| 23  | I/O  | RD_DATAB   | U2-1                 |
+| 22  | I/O  | LED_STATUS | R8 to D4 anode       |
+| 23  | I/O  | /RD_DATA   | U2-1                 |
 | 24  | VCC  | +5V        | +5V                  |
 
-**C7 (100nF), C8 (10nF):** Pin 24 to Pin 12
+**C4 (1µF):** Pin 24 to Pin 12
 
 ---
 
@@ -361,14 +358,14 @@ IBF_CLRB --|5        20|-- LE_IN
 Inverts SIG2 to produce /SIG2 for the GAL registered clock input. The Schmitt
 trigger provides clean edges from the host bus clock/write signal.
 
-| Pin | Name | Signal | To       |
-| --- | ---- | ------ | -------- |
-| 1   | A    | SIG2   | J4-12    |
-| 2   | GND  | GND    | GND      |
-| 3   | Y    | /SIG2  | U4-1     |
-| 5   | VCC  | +5V    | +5V      |
+| Pin | Name | Signal | To    |
+| --- | ---- | ------ | ----- |
+| 1   | A    | SIG2   | J4-12 |
+| 2   | GND  | GND    | GND   |
+| 3   | Y    | /SIG2  | U4-1  |
+| 5   | VCC  | +5V    | +5V   |
 
-**C9 (100nF):** Pin 5 to Pin 2
+**C5 (1µF):** Pin 5 to Pin 2
 
 ---
 
@@ -376,7 +373,7 @@ trigger provides clean edges from the host bus clock/write signal.
 
 Female, front view:
 
-```
+```text
        5   6
       3     4
         1 2
@@ -384,10 +381,10 @@ Female, front view:
 
 | Pin | Signal    | To               |
 | --- | --------- | ---------------- |
-| 1   | PS2_DATA1 | U1-12, R3 to +5V |
+| 1   | PS2_DATA1 | U1-12, R2 to +5V |
 | 3   | GND       | GND              |
 | 4   | +5V       | +5V              |
-| 5   | PS2_CLK1  | U1-13, R2 to +5V |
+| 5   | PS2_CLK1  | U1-13, R1 to +5V |
 
 ---
 
@@ -395,7 +392,7 @@ Female, front view:
 
 Female, front view:
 
-```
+```text
        5   6
       3     4
         1 2
@@ -403,10 +400,10 @@ Female, front view:
 
 | Pin | Signal    | To               |
 | --- | --------- | ---------------- |
-| 1   | PS2_DATA2 | U1-10, R5 to +5V |
+| 1   | PS2_DATA2 | U1-10, R4 to +5V |
 | 3   | GND       | GND              |
 | 4   | +5V       | +5V              |
-| 5   | PS2_CLK2  | U1-11, R4 to +5V |
+| 5   | PS2_CLK2  | U1-11, R3 to +5V |
 
 ---
 
@@ -416,25 +413,25 @@ Female, front view:
 | --- | ------ | ---------------- |
 | 1   | GND    | GND              |
 | 2   | MODE   | U4-2             |
-| 3   | +5V    | R11 (10K) to +5V |
+| 3   | +5V    | R9 (10K) to +5V  |
 
 **Jumper Position:**
 
-- Pins 1-2: 6502 mode (MODE = LOW)
-- Pins 2-3: Z80 mode (MODE = HIGH via R11)
+* Pins 1-2: 6502 mode (MODE = LOW)
+* Pins 2-3: Z80 mode (MODE = HIGH via R9)
 
 ---
 
 ## J4: Host Connector (1x15 Header)
 
-```
+```text
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   |1|2|3|4|5|6|7|8|9|A|B|C|D|E|F|
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   D D D D D D D D A S C S I + G
-   0 1 2 3 4 5 6 7 0 1 S 2 R 5 N
-                       B   Q V D
-                           B
+   D D D D D D D D A S / S / + G
+   0 1 2 3 4 5 6 7 0 1 C 2 I 5 N
+                       S   R V D
+                           Q
 ```
 
 | Pin | Signal | 6502 | Z80  | To                          |
@@ -448,10 +445,10 @@ Female, front view:
 | 7   | D6     | D6   | D6   | HDATA6: U2-13, U3-17        |
 | 8   | D7     | D7   | D7   | HDATA7: U2-12, U3-18        |
 | 9   | A0     | A0   | A0   | U4-3                        |
-| 10  | SIG1   | R/WB | RDB  | U4-4                        |
-| 11  | CSB    | CSB  | CSB  | U4-7, R10 to D1             |
-| 12  | SIG2   | Φ2   | WRB  | U4-6, U5-1                  |
-| 13  | IRQB   | IRQB | INTB | U4-15                       |
+| 10  | SIG1   | R/W | /RD  | U4-4                        |
+| 11  | /CS    | /CS  | /CS  | U4-7, R5 to D1             |
+| 12  | SIG2   | Φ2   | /WR  | U4-6, U5-1                  |
+| 13  | /IRQ   | /IRQ | /INT | U4-15                       |
 | 14  | +5V    | +5V  | +5V  | +5V                         |
 | 15  | GND    | GND  | GND  | GND                         |
 
@@ -461,7 +458,7 @@ Female, front view:
 
 Standard Microchip ICSP pinout:
 
-```
+```text
   +-+-+-+-+-+-+
   |1|2|3|4|5|6|
   +-+-+-+-+-+-+
@@ -477,21 +474,24 @@ Standard Microchip ICSP pinout:
 | 2   | VDD      | +5V                  |
 | 3   | VSS      | GND                  |
 | 4   | ICSPDAT  | U1-19 (RA0/CLK_OUT)  |
-| 5   | ICSPCLK  | U1-18 (RA1/OE_INB)   |
+| 5   | ICSPCLK  | U1-18 (RA1//OE_IN)   |
 | 6   | nc       | -                    |
 
-**Note:** The PIC uses Low-Voltage Programming (LVP) mode with MCLR disabled. RA3 is repurposed as the A0_REG input from the GAL. Pin 1 of the ICSP header is not connected; programming uses only ICSPDAT/ICSPCLK. Do not use high-voltage programming mode.
+**Note:** The PIC uses Low-Voltage Programming (LVP) mode with MCLR disabled.
+RA3 is repurposed as the A0_REG input from the GAL. Pin 1 of the ICSP header is
+not connected; programming uses only ICSPDAT/ICSPCLK. Do not use high-voltage
+programming mode.
 
 ---
 
 ## LEDs: Status Indicators
 
-| LED | Pin   | Signal     | Color | Indicates                        |
-| --- | ----- | ---------- | ----- | -------------------------------- |
-| D1  | J4-11 | CSB        | Green | Chip selected (via R10)          |
-| D2  | U4-17 | OBF        | Red   | PIC has data waiting for host    |
-| D3  | U4-16 | IBF        | Red   | Host has sent command to PIC     |
-| D4  | U4-22 | LED_STATUS | Green | Host is polling status register  |
+| LED | Pin   | Signal     | Color  | Indicates                       |
+| --- | ----- | ---------- | ------ | ------------------------------- |
+| D1  | J4-11 | /CS        | Yellow | Chip selected (via R5)         |
+| D2  | U4-17 | OBF        | Red    | PIC has data waiting for host   |
+| D3  | U4-16 | IBF        | Red    | Host has sent command to PIC    |
+| D4  | U4-22 | LED_STATUS | Green  | Host is polling status register |
 
 ---
 
@@ -499,26 +499,23 @@ Standard Microchip ICSP pinout:
 
 ### ICs
 
-| Ref | Part            | Package   | Function                     |
-| --- | --------------- | --------- | ---------------------------- |
-| U1  | PIC16F18344-I/P | DIP-20    | Controller (dual PS/2)       |
-| U2  | 74AHCT574       | SOIC-20   | Output Latch                 |
-| U3  | 74AHCT373       | SOIC-20   | Input Latch                  |
-| U4  | ATF22V10C-xxPU  | DIP-24    | GAL (Decoder/Status/Flags)   |
-| U5  | 74AHCT1G14      | SOT-23-5  | Schmitt inverter (SIG2→/SIG2)|
+| Ref | Part            | Package  | Function                      |
+| --- | --------------- | -------- | ----------------------------- |
+| U1  | PIC16F18344-I/P | DIP-20   | Controller (dual PS/2)        |
+| U2  | 74AHCT574       | SOIC-20  | Output Latch                  |
+| U3  | 74AHCT373       | SOIC-20  | Input Latch                   |
+| U4  | ATF22V10C-xxPU  | DIP-24   | GAL (Decoder/Status/Flags)    |
+| U5  | 74AHCT1G14      | SOT-23-5 | Schmitt inverter (SIG2→/SIG2) |
 
 ### Passive Components
 
-| Ref            | Value | Package | Function               |
-| -------------- | ----- | ------- | ---------------------- |
-| C1, C3, C5, C7 | 100nF | Ceramic | Decoupling (×4)        |
-| C2, C4, C6, C8 | 10nF  | Ceramic | Decoupling (×4)        |
-| C9             | 100nF | Ceramic | U5 decoupling          |
-| R2, R3         | 4.7K  | 1/4W    | PS/2 Port 1 pull-ups   |
-| R4, R5         | 4.7K  | 1/4W    | PS/2 Port 2 pull-ups   |
-| R6-R9          | 220Ω  | 1/4W    | LED current limit (×4) |
-| R10            | 220Ω  | 1/4W    | CS LED current limit   |
-| R11            | 10K   | 1/4W    | MODE pull-up           |
+| Ref    | Value | Package | Function               |
+| ------ | ----- | ------- | ---------------------- |
+| C1-C5  | 1µF   | Ceramic | Decoupling (×5)        |
+| R1, R2 | 4.7K  | 1/4W    | PS/2 Port 1 pull-ups   |
+| R3, R4 | 4.7K  | 1/4W    | PS/2 Port 2 pull-ups   |
+| R5-R8  | 300Ω  | 1/4W    | LED current limit (×4) |
+| R9     | 10K   | 1/4W    | MODE pull-up           |
 
 ### Connectors & Indicators
 
@@ -529,7 +526,7 @@ Standard Microchip ICSP pinout:
 | J3  | 1×3 header + jumper | Mode select |
 | J4  | 1×15 header         | Host bus    |
 | J5  | 1×6 header          | ICSP        |
-| D1  | 3mm LED (green)     | Chip select |
+| D1  | 3mm LED (yellow)    | Chip select |
 | D2  | 3mm LED (red)       | OBF         |
 | D3  | 3mm LED (red)       | IBF         |
 | D4  | 3mm LED (green)     | Status read |
@@ -538,46 +535,49 @@ Standard Microchip ICSP pinout:
 
 ## Data Flow
 
-### PS/2 activity (Port 1):
+### PS/2 activity (Port 1)
 
-1. PIC sets AUXB = LOW (data from Port 1)
-2. PIC disables U3 outputs (OE_INB=HIGH)
+1. PIC sets /AUX = LOW (data from Port 1)
+2. PIC disables U3 outputs (/OE_IN=HIGH)
 3. PIC drives IDATA0-7 with scan code
 4. PIC pulses CLK_OUT HIGH
-5. Rising edge latches into U2, sets OBF (in GAL), asserts IRQB
-6. Host reads data port → RD_DATAB clears OBF (async reset in GAL)
+5. Rising edge latches into U2, sets OBF (in GAL), asserts /IRQ
+6. Host reads data port → /RD_DATA clears OBF (async reset in GAL)
 
-### PS/2 activity (Port 2):
+### PS/2 activity (Port 2)
 
-1. PIC sets AUXB = HIGH (data from Port 2)
-2. PIC disables U3 outputs (OE_INB=HIGH)
+1. PIC sets /AUX = HIGH (data from Port 2)
+2. PIC disables U3 outputs (/OE_IN=HIGH)
 3. PIC drives IDATA0-7 with scan code
 4. PIC pulses CLK_OUT HIGH
-5. Rising edge latches into U2, sets OBF (in GAL), asserts IRQB
-6. Host reads status → sees AUXB=1 (bit 5), knows data is from Port 2
-7. Host reads data port → RD_DATAB clears OBF (async reset in GAL)
+5. Rising edge latches into U2, sets OBF (in GAL), asserts /IRQ
+6. Host reads status → sees /AUX=1 (bit 5), knows data is from Port 2
+7. Host reads data port → /RD_DATA clears OBF (async reset in GAL)
 
-### Host sends command (6502 mode):
+### Host sends command (6502 mode)
 
-1. Host drives D0-D7 with command, sets A0, R/WB=LOW
+1. Host drives D0-D7 with command, sets A0, R/W=LOW
 2. During Φ2 HIGH: LE_IN=HIGH (373 transparent, tracking data bus)
 3. **Φ2 falls:** LE_IN→LOW (373 latches valid data). /SIG2 rises ~8ns later.
-4. GAL clocks registered outputs: IBF captures write condition, A0_REG captures A0
-5. PIC sees IBF=HIGH, reads A0_REG from RA3, enables U3 (OE_INB=LOW), reads IDATA
-6. PIC holds IBF_CLRB LOW, spin-waits for next clock edge to clear IBF
+4. GAL clocks registered outputs: IBF captures write condition, A0_REG captures
+   A0
+5. PIC sees IBF=HIGH, reads A0_REG from RA3, enables U3 (/OE_IN=LOW), reads
+   IDATA
+6. PIC holds /IBF_CLR LOW, spin-waits for next clock edge to clear IBF
 
-### Host sends command (Z80 mode):
+### Host sends command (Z80 mode)
 
-1. Host drives D0-D7 with command, sets A0, CSB=LOW
-2. **WRB falls:** /SIG2 rises ~8ns later. GAL clocks: IBF=1, A0_REG captures A0.
+1. Host drives D0-D7 with command, sets A0, /CS=LOW
+2. **/WR falls:** /SIG2 rises ~8ns later. GAL clocks: IBF=1, A0_REG captures A0.
    LE_IN=HIGH (373 transparent, tracking data bus)
-3. Z80 drives data during WRB LOW. 373 tracks.
-4. **WRB rises:** LE_IN→LOW (373 latches data)
-5. PIC sees IBF=HIGH, reads A0_REG from RA3, enables U3 (OE_INB=LOW), reads IDATA
-6. PIC holds IBF_CLRB LOW, spin-waits for next clock edge to clear IBF
+3. Z80 drives data during /WR LOW. 373 tracks.
+4. **/WR rises:** LE_IN→LOW (373 latches data)
+5. PIC sees IBF=HIGH, reads A0_REG from RA3, enables U3 (/OE_IN=LOW), reads
+   IDATA
+6. PIC holds /IBF_CLR LOW, spin-waits for next clock edge to clear IBF
 
-### Host reads status (both modes):
+### Host reads status (both modes)
 
 1. Host performs read with A0=1
 2. LED_STATUS enables GAL tri-state outputs on HDATA0, HDATA1, HDATA5
-3. GAL drives OBF→D0, IBF→D1, AUXB→D5
+3. GAL drives OBF→D0, IBF→D1, /AUX→D5
