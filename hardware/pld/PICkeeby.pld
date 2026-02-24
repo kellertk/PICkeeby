@@ -2,21 +2,11 @@ GAL22V10
 PICkeeby
 
 ; Pin 1-12 (left side)
-CLKOUT MODE A0 SIG1 /IBFCLRB SIG2 /CSB AUXB NC NC NC GND
+/NSIG2 MODE A0 SIG1 /IBFCLRB SIG2 /CSB AUXB CLKOUT NC NC GND
 ; Pin 13-24 (right side)
-NC LEDCS IRQB IBF OBF HDATA1 HDATA0 LEIN HDATA5 LEDSTAT /RDDATAB VCC
+NC A0REG IRQB IBF OBF HDATA1 HDATA0 LEIN HDATA5 LEDSTAT /RDDATAB VCC
 
 ; ===== ADDRESS DECODE LOGIC =====
-
-; Write Data (A0=0, Write cycle active)
-; 6502: CSB=0 & SIG1(R/WB)=0 & SIG2(Phi2)=1 & A0=0
-; Z80:  CSB=0 & SIG2(WRB)=0 & A0=0
-; WRDATA goes to PIC via shared AUXB pin during IBF active (active HIGH)
-
-; Write Command (A0=1, Write cycle active)
-; 6502: CSB=0 & SIG1(R/WB)=0 & SIG2(Phi2)=1 & A0=1
-; Z80:  CSB=0 & SIG2(WRB)=0 & A0=1
-; WRCMD goes to PIC via shared AUXB pin during IBF active (active LOW)
 
 ; Read Data (A0=0, Read cycle active)
 ; 6502: CSB=0 & SIG1(R/WB)=1 & SIG2(Phi2)=1 & A0=0
@@ -27,38 +17,39 @@ RDDATAB = /MODE * CSB * SIG1 * SIG2 * /A0
 ; Read Status (A0=1, Read cycle active)
 ; 6502: CSB=0 & SIG1(R/WB)=1 & SIG2(Phi2)=1 & A0=1
 ; Z80:  CSB=0 & SIG1(RDB)=0 & A0=1
-; Note: Status read active goes to LEDSTAT output only
 LEDSTAT = /MODE * CSB * SIG1 * SIG2 * A0
         + MODE * CSB * /SIG1 * A0
 
 ; ===== 373 LATCH ENABLE =====
-; 6502: Phi2 gated by /IBF — transparent while Phi2 HIGH and no
-;       pending write.  When IBF sets (during a write cycle), the
-;       feedback forces LEIN LOW immediately, latching valid write
-;       data while Phi2 is still HIGH.  Stays latched until the PIC
-;       clears IBF.
-; Z80:  !WRB (transparent during write active, latch when done)
-LEIN = /MODE * SIG2 * /IBF
+; 6502: Transparent while Phi2 HIGH, latch on fall
+; Z80:  Transparent while WRB LOW, latch on rise
+LEIN = /MODE * SIG2
      + MODE * /SIG2
 
-; ===== OBF FLIP-FLOP =====
-; Set when PIC clocks out data (CLKOUT rising)
-; Cleared by global AR when host reads data
-OBF.R = VCC
+; ===== OBF - COMBINATIONAL SR LATCH =====
+; Set when PIC pulses CLK_OUT high, cleared when host reads data port
+OBF = CLKOUT * /RDDATAB
+    + OBF * /RDDATAB
 
-; ===== IBF - SR LATCH STYLE =====
-; Set when host writes (write-active & CSB), cleared by PIC (IBFCLRB)
-; Output directly connected to PIC RA4 (pin 3) for sensing
-; 6502: Set during write cycle (R/WB=LOW, CSB=LOW, Phi2=HIGH)
-; Z80:  Set during write cycle (WRB=LOW, CSB=LOW)
-IBF = /MODE * CSB * /SIG1 * SIG2 * /IBFCLRB
-    + MODE * CSB * /SIG2 * /IBFCLRB
-    + IBF * /IBFCLRB
+; ===== IBF - REGISTERED (clocked by /SIG2) =====
+; Load/hold mux: captures 1 on write cycle, holds until PIC clears
+; 6502 write: CSB=0, R/WB(SIG1)=0, IBFCLRB inactive
+; Z80 write:  CSB=0, RDB(SIG1)=1 (not reading), IBFCLRB inactive
+IBF.R = /MODE * CSB * /SIG1 * /IBFCLRB
+      + MODE * CSB * SIG1 * /IBFCLRB
+      + IBF * /IBFCLRB
+
+; ===== A0_REG - REGISTERED (clocked by /SIG2) =====
+; Load/hold mux: captures A0 during write cycles, holds otherwise
+A0REG.R = A0 * /MODE * CSB * /SIG1
+        + A0 * MODE * CSB * SIG1
+        + A0REG * /CSB
+        + A0REG * /MODE * SIG1
+        + A0REG * MODE * /SIG1
 
 ; ===== ACTIVE LOW INTERRUPT =====
 ; IRQB active (low) when output buffer has data.
-; Open-drain style: pin defined active-high so we can use .E for
-; tri-state control.  No .T term = macrocell outputs 0 = pin LOW
+; Open-drain style: no .T term = macrocell outputs 0 = pin LOW
 ; when enabled.  Floats when idle so the host bus pull-up holds
 ; it HIGH.
 IRQB.T = GND
@@ -73,20 +64,10 @@ HDATA1.T = IBF
 HDATA1.E = LEDSTAT
 
 ; HDATA5 - AUXB status bit (active HIGH = data from Port 2)
-; During status read: pass through AUXB input (latched at CLK_OUT time)
-; During IBF active: pass through A0 so PIC can distinguish cmd/data
-; PIC reads this when it detects IBF to know if command or data
 HDATA5.T = AUXB
 HDATA5.E = LEDSTAT
 
-; ===== LED DRIVERS =====
-LEDCS = CSB
-
-; ===== GLOBAL ASYNC RESET =====
-; Clears OBF when host reads data port
-AR = RDDATAB
-
 DESCRIPTION
 PICkeeby Dual PS/2 Controller
-OBF registered with AR, IBF combinatorial SR-latch
+/SIG2-clocked registered IBF and A0_REG, combinational OBF SR-latch
 AUXB passed through for Port 2 identification

@@ -51,8 +51,8 @@ static void pins_init(void) {
     // RA0: CLK_OUT (output, push-pull)
     // RA1: OE_INB (output, push-pull)
     // RA2: IBF_CLRB (output, push-pull)
-    // RA3: A0 (input, directly to CLC1)
-    // RA4: IBF (input from GAL, CLC1 clock)
+    // RA3: A0_REG (input from GAL, registered A0)
+    // RA4: IBF (input from GAL, registered)
     // RA5: AUXB (output, push-pull)
     TRISA = 0x18;  // RA3, RA4 as inputs
     LATA = 0x04;   // IBF_CLRB high
@@ -113,7 +113,7 @@ int main(void) {
 
         // Check for host input
         if (host_ibf_active()) {
-            bool is_cmd = true; // DIAG: bypass CLC1, force command mode
+            bool is_cmd = host_get_a0();
             uint8_t byte = host_read_input();
             i8042_process_byte(byte, is_cmd);
         }

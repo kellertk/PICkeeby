@@ -79,6 +79,11 @@
 #define IBF_CLRB_SetAnalogMode()      do { ANSELAbits.ANSA2 = 1; } while(0)
 #define IBF_CLRB_SetDigitalMode()     do { ANSELAbits.ANSA2 = 0; } while(0)
 
+// RA3 - A0 (A0_REG from GAL, directly read)
+#define A0_TRIS                 TRISAbits.TRISA3
+#define A0_PORT                 PORTAbits.RA3
+#define A0_GetValue()           PORTAbits.RA3
+
 // RA4 - IBF (Input Buffer Full from GAL)
 #define IBF_TRIS                 TRISAbits.TRISA4
 #define IBF_LAT                  LATAbits.LATA4

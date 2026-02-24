@@ -38,21 +38,6 @@ void host_init(void) {
     IBF_CLRB_SetHigh();
     AUXB_SetLow();
 
-    // Map RA4 (IBF) to CLCIN1 via PPS (default maps: CLCIN3=RA3 is already A0)
-    CLCIN1PPS = 0x04;
-
-    // Configure CLC1 as D flip-flop to latch A0 on IBF rising edge
-    // D input: CLCIN3 = RA3 (A0), CLK input: CLCIN1 = RA4 (IBF)
-    CLC1SEL0 = 0x03;    // Data Source 1 = CLCIN3 = RA3 (A0)
-    CLC1SEL1 = 0x01;    // Data Source 2 = CLCIN1 = RA4 (IBF)
-    CLC1SEL2 = 0x00;    // Unused
-    CLC1SEL3 = 0x00;    // Unused
-    CLC1GLS0 = 0x02;    // Gate 1: CLCIN0 (D)
-    CLC1GLS1 = 0x00;    // Gate 2: not used for D-FF
-    CLC1GLS2 = 0x08;    // Gate 3: CLCIN1 (CLK)
-    CLC1GLS3 = 0x00;    // Gate 4: not used
-    CLC1POL = 0x00;     // No inversions
-    CLC1CON = 0x84;     // D flip-flop with R, enabled
 }
 
 void host_send_data(uint8_t data, bool aux) {
@@ -98,7 +83,7 @@ bool host_ibf_active(void) {
 }
 
 bool host_get_a0(void) {
-    return CLC1CONbits.LC1OUT;
+    return A0_GetValue();
 }
 
 uint8_t host_read_input(void) {
@@ -118,9 +103,9 @@ uint8_t host_read_input(void) {
     // Switch internal bus back to output
     IDATA_TRIS = 0x00;
 
-    // Clear IBF
+    // Clear IBF — spin-wait for next /SIG2 clock edge to register the clear
     IBF_CLRB_SetLow();
-    __delay_us(1);
+    while (IBF_GetValue()) { }
     IBF_CLRB_SetHigh();
 
     return data;

@@ -97,15 +97,11 @@ If no clock activity occurs for ~2ms while in RX or TX state, the port resets to
 Manages the 74HCT574 output latch and 74HCT373 input latch.
 
 **A0 Latching:**
-The PIC's CLC1 module is configured as a D flip-flop that latches the A0 signal on the rising edge of IBF. This allows the firmware to distinguish command register writes (A0=1) from data register writes (A0=0).
-
-```
-CLC1 Configuration:
-  Mode: D flip-flop with R
-  D input: RA3 (A0 from host)
-  CLK input: RA4 (IBF from GAL)
-  Output: CLC1OUT register bit
-```
+The GAL captures A0 into a registered output (A0_REG on pin 14) on the /SIG2
+clock edge — the falling edge of PHI2 (6502) or the falling edge of WRB (Z80).
+The PIC reads A0_REG directly from RA3 to distinguish command register writes
+(A0=1) from data register writes (A0=0). This provides hundreds of nanoseconds
+of setup margin since A0 is stable for the entire active bus phase.
 
 **Output Flow (PIC → Host):**
 
@@ -119,22 +115,23 @@ CLC1 Configuration:
 **Input Flow (Host → PIC):**
 
 ```
-1. Host writes to data or command register → GAL sets IBF, CLC latches A0
-2. PIC polls IBF_GetValue()
-3. When IBF=1: read latched A0 from CLC1OUT
-4. Switch IDATA to input, enable latch outputs
-5. Read byte from IDATA_PORT
-6. Disable latch outputs, restore IDATA to output
-7. Pulse IBF_CLRB low → clears IBF
+1. Host writes to data or command register
+2. On bus clock edge: GAL registers IBF=1 and captures A0 into A0_REG
+3. PIC polls IBF_GetValue()
+4. When IBF=1: read A0_REG from RA3 (stable, held by GAL D-FF)
+5. Switch IDATA to input, enable latch outputs
+6. Read byte from IDATA_PORT
+7. Disable latch outputs, restore IDATA to output
+8. Hold IBF_CLRB low, spin-wait for next clock edge to clear IBF
 ```
 
 **Functions:**
 
-- `host_init()` — Initialize latches and CLC1 for A0 latching
+- `host_init()` — Initialize latches and control signals
 - `host_send_data(data, aux)` — Queue byte for host
 - `host_pump_output()` — Transfer one queued byte to output latch
 - `host_ibf_active()` — Check if host has written data
-- `host_get_a0()` — Read latched A0 value from CLC1
+- `host_get_a0()` — Read A0_REG from RA3 (GAL-registered)
 - `host_read_input()` — Read and acknowledge host write
 
 ### i8042.c — Controller Emulation
@@ -177,7 +174,7 @@ Bit 0: KBD_INT - Keyboard interrupt enable
 
 **Command vs Data Routing:**
 
-The hardware provides only one write path (IBF), with no A0 distinction. Commands are identified by value:
+The hardware provides A0 distinction via the GAL-registered A0_REG output. When IBF is set, the PIC reads A0_REG from RA3 to determine if the byte is a command (A0=1) or data (A0=0). Additionally, commands are identified by value:
 
 - Bytes in command ranges (0x20-0x3F, 0x60-0x7F, 0xA7-0xAF, etc.) → processed as commands
 - Other bytes → forwarded to keyboard via PS/2
@@ -229,8 +226,8 @@ while (1) {
 | 19   | RA0   | CLK_OUT    | Output                     |
 | 18   | RA1   | OE_INB     | Output                     |
 | 17   | RA2   | IBF_CLRB   | Output                     |
-| 4    | RA3   | A0         | Input (CLC1 D input)       |
-| 3    | RA4   | IBF        | Input (CLC1 CLK input)     |
+| 4    | RA3   | A0_REG     | Input (from GAL pin 14)    |
+| 3    | RA4   | IBF        | Input (from GAL pin 16)    |
 | 2    | RA5   | AUXB       | Output                     |
 | 13   | RB4   | PS2_CLK1   | Bidirectional (open-drain) |
 | 12   | RB5   | PS2_DATA1  | Bidirectional (open-drain) |
