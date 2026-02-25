@@ -30,7 +30,7 @@ void host_init(void) {
 
     // IDATA bus as output (to latches)
     IDATA_TRIS = 0x00;
-    IDATA_LAT = 0x00;
+    IDATA_Write(0x00);
 
     // Control signals
     CLK_OUT_SetLow();
@@ -70,7 +70,7 @@ void host_pump_output(void) {
     OE_INB_SetHigh();
 
     // Drive data onto internal bus
-    IDATA_LAT = data;
+    IDATA_Write(data);
 
     // Pulse CLK_OUT to latch data and set OBF
     CLK_OUT_SetHigh();
@@ -95,7 +95,7 @@ uint8_t host_read_input(void) {
     __delay_us(1);
 
     // Read the data
-    uint8_t data = IDATA_PORT;
+    uint8_t data = IDATA_Read();
 
     // Disable input latch outputs
     OE_INB_SetHigh();

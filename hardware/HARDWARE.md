@@ -156,9 +156,9 @@ as the i8042.
        /AUX --|2        19|-- CLK_OUT
         IBF --|3        18|-- /OE_IN
          A0 --|4        17|-- /IBF_CLR
-     IDATA5 --|5        16|-- IDATA0
+     IDATA3 --|5        16|-- IDATA0
      IDATA4 --|6        15|-- IDATA1
-     IDATA3 --|7        14|-- IDATA2
+     IDATA5 --|7        14|-- IDATA2
      IDATA6 --|8        13|-- PS2_CLK1
      IDATA7 --|9        12|-- PS2_DATA1
   PS2_DATA2 --|10       11|-- PS2_CLK2
@@ -173,9 +173,9 @@ as the i8042.
 | 2   | RA5  | /AUX      | U4-8                        |
 | 3   | RA4  | IBF       | U4-16                       |
 | 4   | RA3  | A0_REG    | U4-14                       |
-| 5   | RC5  | IDATA5    | U2-7, U3-15                 |
+| 5   | RC5  | IDATA3    | U2-5, U3-9                  |
 | 6   | RC4  | IDATA4    | U2-6, U3-12                 |
-| 7   | RC3  | IDATA3    | U2-5, U3-9                  |
+| 7   | RC3  | IDATA5    | U2-7, U3-15                 |
 | 8   | RC6  | IDATA6    | U2-8, U3-16                 |
 | 9   | RC7  | IDATA7    | U2-9, U3-19                 |
 | 10  | RB7  | PS2_DATA2 | J2-1, R4 to +5V             |
@@ -227,9 +227,9 @@ PIC writes scan codes here. Rising edge of CLK_OUT latches data. Host reads when
 | 2   | D0   | IDATA0   | U1-16, U3-2        |
 | 3   | D1   | IDATA1   | U1-15, U3-5        |
 | 4   | D2   | IDATA2   | U1-14, U3-6        |
-| 5   | D3   | IDATA3   | U1-7, U3-9         |
+| 5   | D3   | IDATA3   | U1-5, U3-9         |
 | 6   | D4   | IDATA4   | U1-6, U3-12        |
-| 7   | D5   | IDATA5   | U1-5, U3-15        |
+| 7   | D5   | IDATA5   | U1-7, U3-15        |
 | 8   | D6   | IDATA6   | U1-8, U3-16        |
 | 9   | D7   | IDATA7   | U1-9, U3-19        |
 | 10  | GND  | GND      | GND                |
@@ -279,13 +279,13 @@ IDATA3 --|9        12|-- IDATA4
 | 6   | Q2   | IDATA2 | U1-14, U2-4        |
 | 7   | D2   | HDATA2 | J4-3, U2-17        |
 | 8   | D3   | HDATA3 | J4-4, U2-16        |
-| 9   | Q3   | IDATA3 | U1-7, U2-5         |
+| 9   | Q3   | IDATA3 | U1-5, U2-5         |
 | 10  | GND  | GND    | GND                |
 | 11  | LE   | LE_IN  | U4-20              |
 | 12  | Q4   | IDATA4 | U1-6, U2-6         |
 | 13  | D4   | HDATA4 | J4-5, U2-15        |
 | 14  | D5   | HDATA5 | J4-6, U2-14, U4-21 |
-| 15  | Q5   | IDATA5 | U1-5, U2-7         |
+| 15  | Q5   | IDATA5 | U1-7, U2-7         |
 | 16  | Q6   | IDATA6 | U1-8, U2-8         |
 | 17  | D6   | HDATA6 | J4-7, U2-13        |
 | 18  | D7   | HDATA7 | J4-8, U2-12        |

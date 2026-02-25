@@ -227,14 +227,14 @@
 #define IDATA2_SetDigitalInput()    do { TRISCbits.TRISC2 = 1; } while(0)
 #define IDATA2_SetDigitalOutput()   do { TRISCbits.TRISC2 = 0; } while(0)
 
-#define IDATA3_TRIS                 TRISCbits.TRISC3
-#define IDATA3_LAT                  LATCbits.LATC3
-#define IDATA3_PORT                 PORTCbits.RC3
-#define IDATA3_SetHigh()            do { LATCbits.LATC3 = 1; } while(0)
-#define IDATA3_SetLow()             do { LATCbits.LATC3 = 0; } while(0)
-#define IDATA3_GetValue()           PORTCbits.RC3
-#define IDATA3_SetDigitalInput()    do { TRISCbits.TRISC3 = 1; } while(0)
-#define IDATA3_SetDigitalOutput()   do { TRISCbits.TRISC3 = 0; } while(0)
+#define IDATA5_TRIS                 TRISCbits.TRISC3
+#define IDATA5_LAT                  LATCbits.LATC3
+#define IDATA5_PORT                 PORTCbits.RC3
+#define IDATA5_SetHigh()            do { LATCbits.LATC3 = 1; } while(0)
+#define IDATA5_SetLow()             do { LATCbits.LATC3 = 0; } while(0)
+#define IDATA5_GetValue()           PORTCbits.RC3
+#define IDATA5_SetDigitalInput()    do { TRISCbits.TRISC3 = 1; } while(0)
+#define IDATA5_SetDigitalOutput()   do { TRISCbits.TRISC3 = 0; } while(0)
 
 #define IDATA4_TRIS                 TRISCbits.TRISC4
 #define IDATA4_LAT                  LATCbits.LATC4
@@ -245,14 +245,14 @@
 #define IDATA4_SetDigitalInput()    do { TRISCbits.TRISC4 = 1; } while(0)
 #define IDATA4_SetDigitalOutput()   do { TRISCbits.TRISC4 = 0; } while(0)
 
-#define IDATA5_TRIS                 TRISCbits.TRISC5
-#define IDATA5_LAT                  LATCbits.LATC5
-#define IDATA5_PORT                 PORTCbits.RC5
-#define IDATA5_SetHigh()            do { LATCbits.LATC5 = 1; } while(0)
-#define IDATA5_SetLow()             do { LATCbits.LATC5 = 0; } while(0)
-#define IDATA5_GetValue()           PORTCbits.RC5
-#define IDATA5_SetDigitalInput()    do { TRISCbits.TRISC5 = 1; } while(0)
-#define IDATA5_SetDigitalOutput()   do { TRISCbits.TRISC5 = 0; } while(0)
+#define IDATA3_TRIS                 TRISCbits.TRISC5
+#define IDATA3_LAT                  LATCbits.LATC5
+#define IDATA3_PORT                 PORTCbits.RC5
+#define IDATA3_SetHigh()            do { LATCbits.LATC5 = 1; } while(0)
+#define IDATA3_SetLow()             do { LATCbits.LATC5 = 0; } while(0)
+#define IDATA3_GetValue()           PORTCbits.RC5
+#define IDATA3_SetDigitalInput()    do { TRISCbits.TRISC5 = 1; } while(0)
+#define IDATA3_SetDigitalOutput()   do { TRISCbits.TRISC5 = 0; } while(0)
 
 #define IDATA6_TRIS                 TRISCbits.TRISC6
 #define IDATA6_LAT                  LATCbits.LATC6
@@ -272,9 +272,15 @@
 #define IDATA7_SetDigitalInput()    do { TRISCbits.TRISC7 = 1; } while(0)
 #define IDATA7_SetDigitalOutput()   do { TRISCbits.TRISC7 = 0; } while(0)
 
-// Convenience macros for PORTC data bus
-#define IDATA_PORT                  PORTC
-#define IDATA_LAT                   LATC
+// IDATA bus on PORTC — bits 3 and 5 are swapped (RC3=IDATA5, RC5=IDATA3)
 #define IDATA_TRIS                  TRISC
+
+// Swap bits 3 and 5 to translate between data byte and PORTC layout
+static inline uint8_t idata_remap(uint8_t val) {
+    return (val & 0xD7) | ((val & 0x08) << 2) | ((val & 0x20) >> 2);
+}
+
+#define IDATA_Write(data)           do { LATC = idata_remap(data); } while(0)
+#define IDATA_Read()                idata_remap(PORTC)
 
 #endif // PINS_H

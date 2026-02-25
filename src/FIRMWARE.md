@@ -240,7 +240,14 @@ while (1) {
 | 12   | RB5   | PS2_DATA1  | Bidirectional (open-drain) |
 | 11   | RB6   | PS2_CLK2   | Bidirectional (open-drain) |
 | 10   | RB7   | PS2_DATA2  | Bidirectional (open-drain) |
-| 16-9 | RC0-7 | IDATA[0-7] | Bidirectional              |
+| 16   | RC0   | IDATA0     | Bidirectional              |
+| 15   | RC1   | IDATA1     | Bidirectional              |
+| 14   | RC2   | IDATA2     | Bidirectional              |
+| 7    | RC3   | IDATA5     | Bidirectional              |
+| 6    | RC4   | IDATA4     | Bidirectional              |
+| 5    | RC5   | IDATA3     | Bidirectional              |
+| 8    | RC6   | IDATA6     | Bidirectional              |
+| 9    | RC7   | IDATA7     | Bidirectional              |
 
 ---
 
