@@ -7233,7 +7233,7 @@
 		)
 		(uuid "16876bce-821d-4fcf-8fda-ba7bcb44c001")
 	)
-	(label "IDATA5"
+	(label "IDATA0"
 		(at 110.49 111.76 0)
 		(effects
 			(font
@@ -7253,7 +7253,7 @@
 		)
 		(uuid "1b6274e0-a2e7-4fb9-ab53-091bac1fcb95")
 	)
-	(label "IDATA0"
+	(label "IDATA1"
 		(at 110.49 99.06 0)
 		(effects
 			(font
@@ -7303,7 +7303,7 @@
 		)
 		(uuid "374a0ff3-c95c-4c40-a984-ec0796a8fff5")
 	)
-	(label "HDATA4"
+	(label "HDATA7"
 		(at 160.02 81.28 0)
 		(effects
 			(font
@@ -7323,7 +7323,7 @@
 		)
 		(uuid "43fade3b-d294-4b1e-9eb7-1c7bf110dd8e")
 	)
-	(label "IDATA2"
+	(label "IDATA5"
 		(at 110.49 104.14 0)
 		(effects
 			(font
@@ -7343,7 +7343,7 @@
 		)
 		(uuid "4efcfa30-01d1-405f-8353-d5476841f1c6")
 	)
-	(label "IDATA4"
+	(label "IDATA7"
 		(at 129.54 81.28 0)
 		(effects
 			(font
@@ -7353,7 +7353,7 @@
 		)
 		(uuid "52b981a9-7c41-489f-b6d0-71214e54038d")
 	)
-	(label "IDATA3"
+	(label "IDATA4"
 		(at 110.49 106.68 0)
 		(effects
 			(font
@@ -7383,7 +7383,7 @@
 		)
 		(uuid "58b77f46-f35f-4287-a364-6874495dd983")
 	)
-	(label "IDATA4"
+	(label "IDATA2"
 		(at 110.49 109.22 0)
 		(effects
 			(font
@@ -7423,7 +7423,7 @@
 		)
 		(uuid "705ce217-821f-4fc0-b063-8cf4fbe97cf0")
 	)
-	(label "IDATA1"
+	(label "IDATA3"
 		(at 110.49 101.6 0)
 		(effects
 			(font
@@ -7453,7 +7453,7 @@
 		)
 		(uuid "79b2c7e4-f79e-41b7-81eb-2a75d5c54999")
 	)
-	(label "HDATA6"
+	(label "HDATA5"
 		(at 160.02 86.36 0)
 		(effects
 			(font
@@ -7523,7 +7523,7 @@
 		)
 		(uuid "b3d5f1ba-40cc-44f3-8a0c-a3b798eaa1a0")
 	)
-	(label "HDATA7"
+	(label "HDATA4"
 		(at 160.02 88.9 0)
 		(effects
 			(font
@@ -7553,7 +7553,7 @@
 		)
 		(uuid "b7a40b1d-77b5-4bae-8f4e-e44ab056b8e0")
 	)
-	(label "IDATA6"
+	(label "IDATA5"
 		(at 129.54 86.36 0)
 		(effects
 			(font
@@ -7583,7 +7583,7 @@
 		)
 		(uuid "bb3ac6f7-66ac-4194-9924-75a789b65788")
 	)
-	(label "HDATA5"
+	(label "HDATA6"
 		(at 160.02 83.82 0)
 		(effects
 			(font
@@ -7603,7 +7603,7 @@
 		)
 		(uuid "c0105331-2f2a-485b-87e3-5b7d65846d0f")
 	)
-	(label "IDATA5"
+	(label "IDATA6"
 		(at 129.54 83.82 0)
 		(effects
 			(font
@@ -7633,7 +7633,7 @@
 		)
 		(uuid "c516fd16-f252-4f2b-8f80-d1ee15668cb5")
 	)
-	(label "IDATA7"
+	(label "IDATA4"
 		(at 129.54 88.9 0)
 		(effects
 			(font
@@ -7823,7 +7823,7 @@
 	)
 	(global_label "SIG1"
 		(shape input)
-		(at 237.49 44.45 180)
+		(at 237.49 46.99 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -7833,7 +7833,7 @@
 		)
 		(uuid "17ffad81-6808-4011-b354-7753ba731eaf")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 230.211 44.45 0)
+			(at 230.211 46.99 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -8593,7 +8593,7 @@
 	)
 	(global_label "A0"
 		(shape input)
-		(at 237.49 46.99 180)
+		(at 237.49 44.45 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -8603,7 +8603,7 @@
 		)
 		(uuid "f12c784f-6642-4fd2-a077-83f06b5238c4")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 232.2067 46.99 0)
+			(at 232.2067 44.45 0)
 			(effects
 				(font
 					(size 1.27 1.27)

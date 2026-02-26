@@ -55,7 +55,7 @@ static void pins_init(void) {
     // RA4: IBF (input from GAL, registered)
     // RA5: AUXB (output, push-pull)
     TRISA = 0x18;  // RA3, RA4 as inputs
-    LATA = 0x04;   // IBF_CLRB high
+    LATA = 0x06;   // IBF_CLRB high, OE_INB high (disable 373)
     ODCONA = 0x00;
 
     // RB4: PS2_CLK1 (bidirectional, open-drain)

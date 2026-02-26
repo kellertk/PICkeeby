@@ -18,7 +18,7 @@ DFP ?= $(error Run ./configure first)
 IPE ?= $(error Run ./configure first)
 PROGRAMMER ?= PK5
 MCU ?= 16F18344
-CFLAGS := -mcpu=$(MCU) -O2 -std=c99
+CFLAGS := -mcpu=$(MCU) -O2 -std=c99 -Wno-1510
 LDFLAGS := -mcpu=$(MCU) -mwarn=-3
 
 FW_SRC := $(wildcard $(SRC_DIR)/*.c)
@@ -26,7 +26,7 @@ FW_HEX := $(BUILD_DIR)/PICkeeby.hex
 PLD_SRC := $(PLD_DIR)/PICkeeby.pld
 PLD_OUT := $(BUILD_DIR)/PICkeeby.jed
 
-.PHONY: all firmware pld flash flash-pld clean gitclean help
+.PHONY: all firmware pld flash flash-pld lint clean gitclean help
 
 all: firmware pld
 
@@ -58,6 +58,10 @@ flash: $(FW_HEX)
 flash-pld: $(PLD_OUT)
 	minipro -p ATF22V10C -w $(PLD_OUT)
 
+lint:
+	npx prettier --check '**/*.md'
+	markdownlint '**/*.md'
+
 clean:
 ifeq ($(RUNTIME_OS),windows)
 	if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"
@@ -79,6 +83,7 @@ Targets:
   flash-pld - Flash PLD using minipro
   clean     - Remove build outputs
   gitclean  - Remove all files matched by .gitignore
+  lint      - Lint markdown files
   help      - Show this help
 
 Configuration (override with environment variables):

@@ -3,7 +3,7 @@ $schema: "https://raw.githubusercontent.com/DavidAnson/markdownlint/v0.40.0/sche
 heading-style:
   style: "atx"
 ul-style:
-  style: asterisk
+  style: dash
 line-length:
   stern: true
   code_blocks: false

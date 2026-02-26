@@ -7,6 +7,33 @@
 #include "host.h"
 #include "pins.h"
 
+// Remap data byte to PORTC bit layout for writing
+static uint8_t idata_to_port(uint8_t val) {
+    return (uint8_t)(
+           ((val & 0x01) << 5)   // IDATA0 → RC5
+         | ((val & 0x02) >> 1)   // IDATA1 → RC0
+         | ((val & 0x04) << 2)   // IDATA2 → RC4
+         | ((val & 0x08) >> 2)   // IDATA3 → RC1
+         | ((val & 0x10) >> 1)   // IDATA4 → RC3
+         | ((val & 0x20) >> 3)   // IDATA5 → RC2
+         | (val & 0xC0));        // IDATA6,7 unchanged
+}
+
+// Remap PORTC bit layout to data byte for reading
+static uint8_t idata_from_port(uint8_t val) {
+    return (uint8_t)(
+           ((val & 0x01) << 1)   // RC0 → IDATA1
+         | ((val & 0x02) << 2)   // RC1 → IDATA3
+         | ((val & 0x04) << 3)   // RC2 → IDATA5
+         | ((val & 0x08) << 1)   // RC3 → IDATA4
+         | ((val & 0x10) >> 2)   // RC4 → IDATA2
+         | ((val & 0x20) >> 5)   // RC5 → IDATA0
+         | (val & 0xC0));        // bits 6,7 unchanged
+}
+
+#define IDATA_Write(data)  do { LATC = idata_to_port(data); } while(0)
+#define IDATA_Read()       idata_from_port(PORTC)
+
 typedef struct {
     uint8_t data[HOST_QUEUE_SIZE];
     bool aux[HOST_QUEUE_SIZE];
@@ -103,9 +130,9 @@ uint8_t host_read_input(void) {
     // Switch internal bus back to output
     IDATA_TRIS = 0x00;
 
-    // Clear IBF — spin-wait for next /SIG2 clock edge to register the clear
+    // Clear IBF — async reset clears all registered outputs immediately
     IBF_CLRB_SetLow();
-    while (IBF_GetValue()) { }
+    NOP();
     IBF_CLRB_SetHigh();
 
     return data;

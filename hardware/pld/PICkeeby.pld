@@ -26,21 +26,28 @@ LEDSTAT = /MODE * CSB * SIG1 * SIG2 * A0
 LEIN = /MODE * SIG2
      + MODE * /SIG2
 
+; ===== ASYNCHRONOUS RESET =====
+; Clears all registered outputs (IBF, A0_REG) when PIC asserts /IBF_CLR.
+; A0_REG is already read before clearing, so resetting it to 0 is harmless.
+AR = IBFCLRB
+
 ; ===== OBF - COMBINATIONAL SR LATCH =====
 ; Set when PIC pulses CLK_OUT high, cleared when host reads data port
 OBF = CLKOUT * /RDDATAB
     + OBF * /RDDATAB
 
-; ===== IBF - REGISTERED (clocked by /SIG2) =====
-; Load/hold mux: captures 1 on write cycle, holds until PIC clears
+; ===== IBF - REGISTERED (clocked by /SIG2, async clear via AR) =====
+; Captures write condition on /SIG2 rising edge, synchronized with A0_REG.
+; Cleared immediately by AR when PIC asserts /IBF_CLR (no clock edge needed).
 ; 6502 write: CSB=0, R/WB(SIG1)=0, IBFCLRB inactive
 ; Z80 write:  CSB=0, RDB(SIG1)=1 (not reading), IBFCLRB inactive
 IBF.R = /MODE * CSB * /SIG1 * /IBFCLRB
       + MODE * CSB * SIG1 * /IBFCLRB
       + IBF * /IBFCLRB
 
-; ===== A0_REG - REGISTERED (clocked by /SIG2) =====
-; Load/hold mux: captures A0 during write cycles, holds otherwise
+; ===== A0_REG - REGISTERED (clocked by /SIG2, async clear via AR) =====
+; Load/hold mux: captures A0 during write cycles, holds otherwise.
+; Also cleared by AR alongside IBF, but PIC has already read it by then.
 A0REG.R = A0 * /MODE * CSB * /SIG1
         + A0 * MODE * CSB * SIG1
         + A0REG * /CSB
@@ -69,5 +76,5 @@ HDATA5.E = LEDSTAT
 
 DESCRIPTION
 PICkeeby Dual PS/2 Controller
-/SIG2-clocked registered IBF and A0_REG, combinational OBF SR-latch
+/SIG2-clocked registered IBF and A0_REG with async reset, combinational OBF
 AUXB passed through for Port 2 identification

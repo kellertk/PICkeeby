@@ -87,9 +87,9 @@ handling.
 
 **Functions:**
 
-* `ps2_clock_isr(port)` — Called from ISR on clock falling edge
-* `ps2_task()` — Initiates pending transmissions, checks for timeouts
-* `ps2_inhibit(port, inhibit)` — Enable/disable port communication
+- `ps2_clock_isr(port)` -- Called from ISR on clock falling edge
+- `ps2_task()` -- Initiates pending transmissions, checks for timeouts
+- `ps2_inhibit(port, inhibit)` -- Enable/disable port communication
 
 **Timeout Recovery:** If no clock activity occurs for ~2ms while in RX or TX
 state, the port resets to IDLE. This prevents permanent data misalignment from
@@ -125,17 +125,17 @@ phase.
 5. Switch IDATA to input, enable latch outputs
 6. Read byte from IDATA_PORT
 7. Disable latch outputs, restore IDATA to output
-8. Hold IBF_CLRB low, spin-wait for next clock edge to clear IBF
+8. Pulse IBF_CLRB low to clear IBF (GAL async reset, immediate)
 ```
 
 **Functions:**
 
-* `host_init()` — Initialize latches and control signals
-* `host_send_data(data, aux)` — Queue byte for host
-* `host_pump_output()` — Transfer one queued byte to output latch
-* `host_ibf_active()` — Check if host has written data
-* `host_get_a0()` — Read A0_REG from RA3 (GAL-registered)
-* `host_read_input()` — Read and acknowledge host write
+- `host_init()` -- Initialize latches and control signals
+- `host_send_data(data, aux)` -- Queue byte for host
+- `host_pump_output()` -- Transfer one queued byte to output latch
+- `host_ibf_active()` -- Check if host has written data
+- `host_get_a0()` -- Read A0_REG from RA3 (GAL-registered)
+- `host_read_input()` -- Read and acknowledge host write
 
 ### i8042.c — Controller Emulation
 
@@ -181,9 +181,9 @@ The hardware provides A0 distinction via the GAL-registered A0_REG output. When
 IBF is set, the PIC reads A0_REG from RA3 to determine if the byte is a command
 (A0=1) or data (A0=0). Additionally, commands are identified by value:
 
-* Bytes in command ranges (0x20-0x3F, 0x60-0x7F, 0xA7-0xAF, etc.) → processed as
-  commands
-* Other bytes → forwarded to keyboard via PS/2
+- Bytes in command ranges (0x20-0x3F, 0x60-0x7F, 0xA7-0xAF, etc.) -> processed
+  as commands
+- Other bytes -> forwarded to keyboard via PS/2
 
 Multi-byte commands use a pending state machine:
 
@@ -228,26 +228,26 @@ while (1) {
 
 ## Pin Assignments
 
-| Pin  | Port  | Function   | Direction                  |
-| ---- | ----- | ---------- | -------------------------- |
-| 19   | RA0   | CLK_OUT    | Output                     |
-| 18   | RA1   | OE_INB     | Output                     |
-| 17   | RA2   | IBF_CLRB   | Output                     |
-| 4    | RA3   | A0_REG     | Input (from GAL pin 14)    |
-| 3    | RA4   | IBF        | Input (from GAL pin 16)    |
-| 2    | RA5   | AUXB       | Output                     |
-| 13   | RB4   | PS2_CLK1   | Bidirectional (open-drain) |
-| 12   | RB5   | PS2_DATA1  | Bidirectional (open-drain) |
-| 11   | RB6   | PS2_CLK2   | Bidirectional (open-drain) |
-| 10   | RB7   | PS2_DATA2  | Bidirectional (open-drain) |
-| 16   | RC0   | IDATA0     | Bidirectional              |
-| 15   | RC1   | IDATA1     | Bidirectional              |
-| 14   | RC2   | IDATA2     | Bidirectional              |
-| 7    | RC3   | IDATA5     | Bidirectional              |
-| 6    | RC4   | IDATA4     | Bidirectional              |
-| 5    | RC5   | IDATA3     | Bidirectional              |
-| 8    | RC6   | IDATA6     | Bidirectional              |
-| 9    | RC7   | IDATA7     | Bidirectional              |
+| Pin | Port | Function  | Direction                  |
+| --- | ---- | --------- | -------------------------- |
+| 19  | RA0  | CLK_OUT   | Output                     |
+| 18  | RA1  | OE_INB    | Output                     |
+| 17  | RA2  | IBF_CLRB  | Output                     |
+| 4   | RA3  | A0_REG    | Input (from GAL pin 14)    |
+| 3   | RA4  | IBF       | Input (from GAL pin 16)    |
+| 2   | RA5  | AUXB      | Output                     |
+| 13  | RB4  | PS2_CLK1  | Bidirectional (open-drain) |
+| 12  | RB5  | PS2_DATA1 | Bidirectional (open-drain) |
+| 11  | RB6  | PS2_CLK2  | Bidirectional (open-drain) |
+| 10  | RB7  | PS2_DATA2 | Bidirectional (open-drain) |
+| 16  | RC0  | IDATA1    | Bidirectional              |
+| 15  | RC1  | IDATA3    | Bidirectional              |
+| 14  | RC2  | IDATA5    | Bidirectional              |
+| 7   | RC3  | IDATA4    | Bidirectional              |
+| 6   | RC4  | IDATA2    | Bidirectional              |
+| 5   | RC5  | IDATA0    | Bidirectional              |
+| 8   | RC6  | IDATA6    | Bidirectional              |
+| 9   | RC7  | IDATA7    | Bidirectional              |
 
 ---
 
@@ -278,23 +278,23 @@ IOC triggers on falling edge of PS/2 clock (IOCBN = 0x50).
 
 **PS/2 Clock:** 10-16.7 kHz (60-100 µs per bit)
 
-* ISR must complete within ~30 µs to catch next edge
-* At 32 MHz, ~960 instruction cycles available
+- ISR must complete within ~30 µs to catch next edge
+- At 32 MHz, ~960 instruction cycles available
 
 **Host Read Rate:** Depends on host software polling interval
 
-* Output queue (32 entries) buffers scan codes from PS/2 devices
-* If host doesn't read before queue fills, new data is dropped
-* OBF flag in status register tells host when data is waiting
-* To avoid output buffer overrun, the host should read data once every 12.5 ms
+- Output queue (32 entries) buffers scan codes from PS/2 devices
+- If host doesn't read before queue fills, new data is dropped
+- OBF flag in status register tells host when data is waiting
+- To avoid output buffer overrun, the host should read data once every 12.5 ms
   on average
-* The output buffer can hold approximately 500 ms of keystrokes from a fast
+- The output buffer can hold approximately 500 ms of keystrokes from a fast
   typist before dropping data
 
 **Host Write Rate:** Not critical
 
-* PIC polls IBF in main loop, typically sub-millisecond response
-* Host must wait for IBF to clear before writing next byte
+- PIC polls IBF in main loop, typically sub-millisecond response
+- Host must wait for IBF to clear before writing next byte
 
 **TX Request-to-Send:** 150 µs clock inhibit before transmission
 
